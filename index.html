@@ -1,0 +1,1333 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnet de révisions</title>
+
+<!-- PWA : permet d'installer le site comme une app (icône, plein écran, hors-ligne) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F6B49">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carnet">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: accueil en grille de matières -> page matière en liste de chapitres -> session plein écran par mode */
+:root{
+  --bg:#EFF1EC; --surface:#FFFFFF; --surface-2:#E3E8DD;
+  --fg:#1C2620; --fg-muted:#5B6B5F;
+  --accent:#2F6B49; --accent-contrast:#FFFFFF; --accent-2:#B6752B;
+  --good:#2F7A4F; --bad:#AD3A2E; --line:#D6DACE;
+  --cours:#3D5A99; --td:#B5502E;
+  --shadow: 0 1px 2px rgba(28,38,32,.06), 0 4px 14px rgba(28,38,32,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A16; --surface:#1C241E; --surface-2:#222B23;
+    --fg:#E9EDE6; --fg-muted:#9FAC9B;
+    --accent:#5FAE7F; --accent-contrast:#0E1410; --accent-2:#D99A4E;
+    --good:#5FAE7F; --bad:#E07A63; --line:#333D34;
+    --cours:#8CA6EC; --td:#E2925F;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 18px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A16; --surface:#1C241E; --surface-2:#222B23;
+  --fg:#E9EDE6; --fg-muted:#9FAC9B;
+  --accent:#5FAE7F; --accent-contrast:#0E1410; --accent-2:#D99A4E;
+  --good:#5FAE7F; --bad:#E07A63; --line:#333D34;
+  --cours:#8CA6EC; --td:#E2925F;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 18px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--fg) 5%, transparent) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--fg) 5%, transparent) 0 1px, transparent 1px 42px),
+    var(--bg);
+  background-attachment:fixed;
+  color:var(--fg);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.45;
+}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;text-wrap:balance;margin:0}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+#app{max-width:860px;margin:0 auto;padding:28px max(16px,env(safe-area-inset-left,0px)) 60px max(16px,env(safe-area-inset-right,0px))}
+.topbar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.section-tabs{display:flex;gap:6px;margin-bottom:26px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.section-tab{color:var(--fg-muted);text-decoration:none;font-size:14px;cursor:pointer;padding:9px 4px;margin-right:18px;border-bottom:2px solid transparent;transform:translateY(1px)}
+.section-tab:hover{color:var(--fg)}
+.section-tab.active{color:var(--accent);border-color:var(--accent);font-weight:600}
+.section-tab.tab-cours.active{color:var(--cours);border-color:var(--cours)}
+.section-tab.tab-td.active{color:var(--td);border-color:var(--td)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{flex:none}
+.brand .kicker{display:block;color:var(--accent-2);font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:2px}
+.brand h1{font-size:23px}
+a.crumb{color:var(--fg-muted);text-decoration:none;font-size:14px;cursor:pointer}
+a.crumb:hover{color:var(--accent)}
+.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.subject-card{cursor:pointer;display:flex;flex-direction:column;gap:10px;min-height:120px;transition:transform .15s ease,border-color .15s ease}
+.subject-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.subject-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.subject-card h3{font-size:18px}
+.subject-card .meta{color:var(--fg-muted);font-size:13px}
+.seal{border-radius:50%;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;flex:none;background:var(--surface)}
+.stamp{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--accent-2);color:var(--accent-2);font-size:12px;flex:none}
+.chapter-head-left{display:flex;align-items:center;gap:11px}
+.subject-add{display:flex;align-items:center;justify-content:center;color:var(--fg-muted);border:1px dashed var(--line);border-radius:14px;min-height:120px;font-size:13px;text-align:center;padding:18px}
+.bilan{margin-bottom:18px;display:flex;flex-direction:column;gap:12px}
+.bilan-row{display:flex;gap:22px;flex-wrap:wrap}
+.bilan-stat{display:flex;align-items:center;gap:10px}
+.bilan-stat > div{display:flex;flex-direction:column;gap:1px}
+.bilan-num{font-size:22px;font-weight:600;color:var(--accent);line-height:1}
+.bilan-label{color:var(--fg-muted);font-size:12px}
+.bilan-msg{color:var(--fg-muted);font-size:13px;font-family:"Fraunces",serif}
+.chapters{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.chapter-row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.chapter-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.chapter-head h3{font-size:16px}
+.chapter-head .count{color:var(--fg-muted);font-size:13px}
+.bar{height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-bottom:12px}
+.link-rows{display:flex;flex-direction:column;gap:12px}
+.link-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-left-width:4px;border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease}
+.link-row:hover{transform:translateX(2px)}
+.link-row.cours{border-left-color:var(--cours)}
+.link-row.td{border-left-color:var(--td)}
+.link-row .tag-num{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-muted);display:block;margin-bottom:2px}
+.link-row h3{font-size:15px}
+.link-row .meta{color:var(--fg-muted);font-size:13px;margin-top:2px}
+.link-row .chevron{margin-left:auto;color:var(--fg-muted);flex:none}
+.detail-back{display:inline-flex;align-items:center;gap:6px;color:var(--fg-muted);font-size:13px;cursor:pointer;margin-bottom:16px}
+.detail-back:hover{color:var(--fg)}
+.detail-head{margin-bottom:22px}
+.detail-head .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:block}
+.detail-head.cours .eyebrow{color:var(--cours)}
+.detail-head.td .eyebrow{color:var(--td)}
+.detail-head h2{font-size:24px}
+.cours-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.cours-block h4{font-size:15px;color:var(--cours);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.cours-block h4::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cours);flex:none}
+.cours-block ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.cours-block li{font-size:14.5px;line-height:1.5}
+.cours-block li b{color:var(--fg);font-weight:600}
+.td-note{border:1px solid var(--td);background:color-mix(in srgb, var(--td) 9%, var(--surface));border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;margin-bottom:18px}
+.td-note b{color:var(--td)}
+.td-qa{display:flex;flex-direction:column;gap:16px}
+.td-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.td-item .q{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}
+.td-item .qnum{flex:none;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb, var(--td) 16%, var(--surface));border:1px solid var(--td);color:var(--td);font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.td-item .qtext{font-family:"Fraunces",serif;font-size:15.5px}
+.td-item .atext{font-size:14.5px;line-height:1.55;padding-left:36px}
+.td-item .atext p{margin:0 0 8px}
+.td-item .atext p:last-child{margin-bottom:0}
+.td-item .flag{display:inline-block;font-size:11.5px;color:var(--td);border:1px solid var(--td);border-radius:6px;padding:1px 6px;margin-left:36px;margin-top:4px}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.mode-row{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:inherit;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);padding:9px 14px;transition:background .12s ease,border-color .12s ease}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+button.primary:hover{opacity:.92}
+button.ghost{background:transparent}
+button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--bad)}
+.session{display:flex;flex-direction:column;gap:18px;min-height:60vh}
+.session-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.progress-pill{color:var(--fg-muted);font-size:13px}
+.quit{color:var(--fg-muted);font-size:13px}
+.quit:hover{color:var(--bad)}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:10px 0}
+.flash{width:100%;max-width:520px;aspect-ratio:3/2;perspective:1200px;cursor:pointer}
+.flash-inner{position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+.flash.flipped .flash-inner{transform:rotateY(180deg)}
+.flash-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;border-radius:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:19px}
+.flash-face.back{transform:rotateY(180deg);background:var(--surface-2)}
+.flash-face::after{content:"";position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 24px 24px 0;border-color:transparent var(--surface-2) transparent transparent}
+.flash-face.back::after{border-color:transparent var(--surface) transparent transparent}
+.flash-face .tag{position:absolute;top:14px;left:16px;color:var(--accent-2);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.flash-actions{display:flex;justify-content:center;gap:10px}
+.qcm{width:100%;max-width:560px;display:flex;flex-direction:column;gap:14px}
+.qcm .q{font-size:19px;font-family:"Fraunces",serif}
+.qcm .opts{display:flex;flex-direction:column;gap:9px}
+.opt{text-align:left;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.opt.correct{border-color:var(--good);background:color-mix(in srgb, var(--good) 16%, var(--surface))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb, var(--bad) 14%, var(--surface))}
+.opt:disabled{cursor:default}
+.written{width:100%;max-width:560px;display:flex;flex-direction:column;gap:14px}
+.written .q{font-size:19px;font-family:"Fraunces",serif}
+.written textarea{width:100%;min-height:90px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:12px;font-family:inherit;font-size:15px;resize:vertical}
+.written textarea:focus-visible{outline:2px solid var(--accent)}
+.compare{display:flex;flex-direction:column;gap:10px}
+.compare .block{border-radius:12px;padding:12px 14px;border:1px solid var(--line)}
+.compare .you{background:var(--surface-2)}
+.compare .ref{background:color-mix(in srgb, var(--accent) 12%, var(--surface));border-color:var(--accent)}
+.compare .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-muted);margin-bottom:4px}
+.explain{border-radius:12px;padding:12px 14px;border:1px solid var(--accent);background:color-mix(in srgb, var(--accent) 10%, var(--surface));font-size:14px;line-height:1.5}
+.explain .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:4px;font-weight:600}
+.grade-row{display:flex;gap:10px;justify-content:center}
+.session-nav{display:flex;justify-content:center;gap:10px}
+.recap{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.recap .score{font-size:42px;font-family:"Fraunces",serif;color:var(--accent)}
+.footer-note{margin-top:34px;display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--fg-muted);font-size:12px;flex-wrap:wrap}
+.exam-card{margin-top:18px;border:1.5px solid var(--accent-2);background:color-mix(in srgb, var(--accent-2) 7%, var(--surface));display:flex;flex-direction:column;gap:10px;position:relative}
+.exam-card h3{font-size:17px;display:flex;align-items:center;gap:8px}
+.exam-card h3 svg{flex:none}
+.exam-card p{margin:0;color:var(--fg-muted);font-size:14px}
+.exam-breakdown{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.exam-row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px}
+.progress-pill.urgent{color:var(--bad);font-weight:600}
+@media (max-width:480px){
+  .flash-face{font-size:16px;padding:20px}
+  .brand h1{font-size:19px}
+}
+</style>
+
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SUBJECTS = [
+    {
+      id: "eco",
+      name: "Écoconception",
+      note: "12 chapitres",
+      chapters: [
+        {
+          id: "fond",
+          title: "Fondamentaux de l'écoconception",
+          cards: [
+            {q:"La norme ISO 14062 cadre l'écoconception. Que définit-elle précisément ?", a:"Un vocabulaire commun et des principes pour intégrer les aspects environnementaux dès la conception, afin de réduire les impacts sur l'ensemble du cycle de vie du produit.", d:["Des seuils chiffrés d'émissions de CO2 à ne pas dépasser, imposés à chaque catégorie de produit industriel.","Une procédure de certification obligatoire, délivrée par un organisme accrédité avant toute mise sur le marché.","Une méthode de calcul détaillée permettant de réaliser une analyse du cycle de vie complète et comparable entre entreprises."], w:"L'ISO 14062 est un cadre conceptuel et un vocabulaire commun, pas un seuil réglementaire, une certification ou une méthode de calcul : ces outils-là existent, mais relèvent d'autres démarches (ACV normée, écolabels, réglementation)."},
+            {q:"Quelle est la différence entre écoconception et éco-innovation ?", a:"L'écoconception vise à réduire les impacts d'un produit à fonction équivalente ; l'éco-innovation peut remettre en cause la fonction ou le modèle économique (ex : vendre un usage plutôt qu'un produit).", d:["L'écoconception ne modifie que l'apparence extérieure du produit ; l'éco-innovation ne modifie que son procédé de fabrication.","L'écoconception s'applique à un produit déjà commercialisé ; l'éco-innovation ne s'applique qu'à un produit encore au stade de prototype.","L'écoconception vise d'abord à réduire les coûts de production ; l'éco-innovation vise uniquement à réduire les impacts environnementaux, sans lien avec les coûts."], w:"La nuance clé : l'écoconception optimise ce qui existe déjà à fonction égale, alors que l'éco-innovation peut changer le modèle (louer un usage au lieu de vendre un produit, par exemple) — la différence porte sur la fonction et le modèle, pas sur l'apparence, le stade du projet ou les coûts."},
+            {q:"Pourquoi l'écoconception est-elle une approche \"multicritère\" et \"multi-étapes\" ?", a:"Parce qu'elle prend en compte plusieurs indicateurs d'impact à la fois et toutes les étapes du cycle de vie, pour éviter un simple déplacement de la pollution.", d:["Parce qu'elle doit être validée successivement par plusieurs services internes de l'entreprise avant tout lancement en production.","Parce qu'elle nécessite l'accord de plusieurs organismes de certification environnementale avant la mise sur le marché du produit.","Parce qu'elle s'applique en parallèle à plusieurs gammes de produits, afin de mutualiser le coût de l'étude environnementale."], w:"Multicritère et multi-étapes renvoient aux indicateurs d'impact et aux phases du cycle de vie du produit lui-même, pas à des étapes de validation administrative ou organisationnelle de l'entreprise : se concentrer sur un seul critère ou une seule étape risque de faire gagner d'un côté et perdre de l'autre."},
+            {q:"Qu'est-ce qu'un \"transfert de pollution\" que l'écoconception cherche à éviter ?", a:"Réduire un impact sur une étape ou un critère environnemental en en aggravant un autre ailleurs (ex : réduire le poids d'un produit mais augmenter sa toxicité).", d:["Le fait de transporter les déchets industriels d'un pays à un autre pour qu'ils y soient traités à moindre coût.","Le remplacement d'un fournisseur de matière première par un autre proposant un meilleur prix, sans lien avec l'impact environnemental.","L'obtention d'un nouvel écolabel sur un produit dont la conception n'a pourtant pas changé entre-temps."], w:"C'est l'inverse de l'objectif de l'écoconception : améliorer un point sans vérifier les autres peut aggraver le bilan global du produit. Le transport de déchets, un changement de fournisseur ou l'obtention d'un label décrivent d'autres situations, sans ce mécanisme précis de report d'impact."},
+            {q:"Un bureau d'étude affirme avoir \"écoconçu\" un produit simplement en réduisant sa masse de 20%. Pourquoi cette affirmation est-elle incomplète au sens strict de l'écoconception ?", a:"Parce qu'une approche multicritère et multi-étapes impose de vérifier qu'aucun autre impact (toxicité, consommation en usage, recyclabilité...) n'a été aggravé ailleurs par cette réduction de masse, sous peine de transfert de pollution.", d:["Parce que la masse d'un produit n'a jamais d'influence sur son impact environnemental global.", "Parce que seule une réduction de masse validée par un écolabel officiel peut être qualifiée d'écoconception.", "Parce que l'écoconception ne concerne que les impacts mesurés lors de la phase de fabrication, jamais la masse du produit fini."], w:"C'est l'application directe de la logique multicritère/multi-étapes et du risque de transfert de pollution vus plus haut : un seul chiffre qui s'améliore ne prouve rien sans vérifier le reste du cycle de vie et les autres indicateurs."}
+          ]
+        },
+        {
+          id: "acv",
+          title: "Analyse du Cycle de Vie (ACV)",
+          cards: [
+            {q:"Quelles normes encadrent la méthodologie de l'Analyse du Cycle de Vie ?", a:"ISO 14040 (principes et cadre) et ISO 14044 (exigences et lignes directrices).", d:["ISO 14001 (système de management environnemental) et ISO 14006 (lignes directrices d'intégration de l'écoconception).","ISO 9001 (management de la qualité) et ISO 14021 (auto-déclarations environnementales).","ISO 50001 (système de management de l'énergie) et ISO 14025 (déclarations environnementales de type III)."], w:"14040 pose les principes généraux, 14044 détaille les exigences méthodologiques précises : les deux normes sont indissociables en pratique. Les autres paires citées existent bien mais encadrent d'autres démarches (management environnemental, qualité, énergie, auto-déclarations)."},
+            {q:"À quoi sert l'unité fonctionnelle dans une ACV ?", a:"Elle quantifie la fonction rendue par le produit étudié, pour comparer équitablement des produits différents qui rendent le même service.", d:["Elle fixe la durée de vie minimale que le produit doit garantir pour que les résultats de l'ACV restent valables dans le temps.","Elle désigne la part du produit recyclable en fin de vie, utilisée ensuite pour calculer le taux de valorisation final.","Elle correspond à la masse totale de matière première consommée pour fabriquer une unité du produit fini."], w:"Sans unité fonctionnelle commune, comparer deux produits n'a pas de sens (ex : comparer 1 kg de matériau à 1 objet fini fausse le résultat). Durée de vie, taux de recyclabilité et masse de matière sont des données qui entrent dans l'ACV, mais aucune ne remplace l'unité fonctionnelle elle-même."},
+            {q:"Qu'est-ce qu'une évaluation environnementale \"simplifiée\" par rapport à une ACV complète ?", a:"Un outil plus rapide et moins coûteux (check-list, ESQCV, logiciel simplifié) utilisé en amont de la conception pour orienter les choix, sans la rigueur d'une ACV normée.", d:["Une ACV réalisée uniquement sur la phase de fabrication, en laissant de côté l'usage et la fin de vie.","Une ACV qui ne prend en compte qu'un seul indicateur d'impact, généralement le changement climatique.","Une certification officielle délivrée par un organisme accrédité, attestant qu'une ACV complète a bien été réalisée."], w:"Elle sert à orienter des choix rapidement en conception, pas à publier un résultat officiel : la rigueur normée reste réservée à l'ACV complète. Se limiter à une étape, à un seul indicateur ou obtenir une certification sont d'autres situations, pas la définition de la simplification."},
+            {q:"Citez au moins deux catégories d'indicateurs d'impact utilisées en ACV.", a:"Le changement climatique (GWP, en kg eq. CO2), l'épuisement des ressources abiotiques, l'acidification, l'eutrophisation ou l'écotoxicité.", d:["Le chiffre d'affaires généré par le produit et sa part de marché face à la concurrence.","La note de satisfaction client et le taux de retour du produit en service après-vente.","Le temps de montage en atelier et le coût de main-d'œuvre associé à la fabrication."], w:"Le GWP (climat) est le plus connu, mais une vraie ACV croise plusieurs indicateurs environnementaux pour éviter de n'optimiser qu'un seul aspect. Chiffre d'affaires, satisfaction client ou coût de main-d'œuvre sont des indicateurs économiques ou commerciaux, pas environnementaux."},
+            {q:"Une entreprise compare deux emballages évalués avec la même méthode d'ACV : l'un pèse 50g et transporte 1 unité de produit, l'autre pèse 80g et en transporte 3. Pourquoi ne peut-on pas conclure que le premier est \"meilleur\" juste en comparant leurs masses ?", a:"Parce que la comparaison doit se faire sur la même unité fonctionnelle (ex : la quantité d'emballage nécessaire pour transporter 1 unité de produit), et qu'à cette unité, l'emballage le plus léger au total n'est pas forcément celui qui consomme le moins de matière par produit transporté.", d:["Parce que la masse d'un emballage n'a jamais d'influence sur les résultats d'une ACV.","Parce qu'il faut toujours privilégier l'emballage le plus léger, quelle que soit la quantité de produit transportée.","Parce que seul le coût d'achat de l'emballage permet de trancher entre deux solutions d'emballage."], w:"C'est une mise en situation directe de l'unité fonctionnelle : ramener les deux emballages à \"la quantité de matière utilisée pour transporter 1 unité de produit\" peut inverser le classement obtenu en comparant simplement les masses brutes."}
+          ]
+        },
+        {
+          id: "ecolabels",
+          title: "Écolabels et exemples",
+          cards: [
+            {q:"Qu'est-ce qu'un écolabel officiel de type I (Ecolabel européen, NF Environnement) par rapport à une simple allégation du fabricant ?", a:"Il est attribué après vérification par un organisme tiers indépendant, sur des critères multicritères couvrant tout le cycle de vie, contrairement à une autodéclaration non contrôlée.", d:["Il garantit uniquement que le produit a été fabriqué sur le territoire français, sans engagement sur ses impacts réels.","Il garantit que le produit est totalement biodégradable en fin de vie, quel que soit le milieu dans lequel il est abandonné.","Il dispense l'entreprise de réaliser une analyse du cycle de vie, puisque le label en tient déjà lieu."], w:"La vérification par un tiers indépendant, sur plusieurs critères et sur tout le cycle de vie, est ce qui distingue un vrai écolabel d'une simple autodéclaration marketing : il ne porte ni sur l'origine géographique, ni sur la biodégradabilité seule, et ne remplace pas une ACV."},
+            {q:"Pourquoi la chaise Aeron (Herman Miller) est-elle souvent citée en exemple en écoconception ?", a:"Parce qu'elle a été conçue dès l'origine pour être démontable et recyclable en fin de vie, tout en conservant ses performances d'usage.", d:["Parce qu'elle est fabriquée intégralement à partir de matériaux biosourcés, sans aucun composant synthétique.","Parce qu'elle a été le tout premier produit industriel à obtenir la certification Ecolabel européen.","Parce qu'elle a été conçue pour ne nécessiter aucune maintenance pendant toute sa durée d'usage."], w:"L'exemple illustre qu'écoconception ne veut pas dire sacrifier la performance : démontabilité et qualité d'usage ont été pensées ensemble dès le départ, pas le choix d'une matière biosourcée, une certification ou une absence de maintenance."},
+            {q:"Un fabricant écrit \"100% naturel\" sur l'emballage d'un produit, sans faire appel à aucun organisme de vérification. Pourquoi cette mention n'a-t-elle pas la même valeur qu'un écolabel officiel de type I ?", a:"Parce qu'il s'agit d'une autodéclaration non contrôlée par un tiers indépendant, alors qu'un écolabel officiel exige une vérification multicritère sur l'ensemble du cycle de vie avant d'être attribué.", d:["Parce que la mention \"100% naturel\" est automatiquement fausse dès qu'elle n'est pas accompagnée d'un prix réduit.", "Parce que seuls les écolabels officiels ont le droit d'utiliser un adjectif qualifiant l'origine d'un matériau.", "Parce qu'un écolabel officiel se limite toujours à un seul critère, alors qu'une autodéclaration peut en couvrir plusieurs."], w:"C'est l'application directe de la distinction vue plus haut entre écolabel officiel et allégation du fabricant : l'absence de vérification par un tiers indépendant est le point qui fragilise toute autodéclaration, quel que soit son contenu."}
+          ]
+        },
+        {
+          id: "rep",
+          title: "Filière REP et fin de vie (Valdelia)",
+          cards: [
+            {q:"Que signifie REP et quel principe fondamental porte-t-elle ?", a:"Responsabilité Élargie du Producteur : les producteurs doivent financer ou organiser la gestion des déchets issus de leurs produits en fin de vie (principe pollueur-payeur).", d:["Réglementation Européenne des Plastiques : un règlement qui limite progressivement l'usage du plastique à usage unique dans l'Union européenne.","Recyclage et Protection : un label de certification volontaire attribué aux entreprises qui s'engagent sur le recyclage.","Redevance pour l'Élimination des Polluants : une taxe prélevée sur les émissions industrielles, indépendante du produit vendu."], w:"Le principe pollueur-payeur transfère la charge de la fin de vie vers celui qui met le produit sur le marché, pas vers la collectivité : un règlement sur le plastique, un label volontaire ou une taxe sur les émissions sont d'autres dispositifs, sans ce principe de responsabilité du producteur."},
+            {q:"Quelle loi française a renforcé les filières REP (dont celle du mobilier), avec le tri 9 flux et le Triman ?", a:"La loi AGEC (Anti-Gaspillage pour une Économie Circulaire), du 10 février 2020.", d:["La loi NOTRe, qui réorganise les compétences des collectivités territoriales sans viser spécifiquement les filières REP.","La loi de Transition Énergétique pour la Croissance Verte (LTECV), centrée sur la sobriété énergétique plutôt que sur les déchets.","La directive cadre européenne relative aux déchets, qui fixe un cadre général mais sans créer le tri 9 flux ni le Triman en France."], w:"AGEC est la loi française de référence pour l'économie circulaire, avec des mesures précises (tri 9 flux, Triman) que les autres textes cités n'introduisent pas, même s'ils concernent aussi l'environnement ou les collectivités."},
+            {q:"Qu'est-ce que Valdelia ?", a:"Un éco-organisme à but non lucratif, agréé pour organiser la collecte, le réemploi, la réparation et le recyclage des déchets d'éléments d'ameublement (DEA) et des produits/matériaux de construction du bâtiment (PMCB).", d:["Une entreprise privée de recyclage cotée en bourse, qui facture librement ses prestations de collecte aux industriels.","Un label volontaire de certification bois, comparable à FSC/PEFC, attribué aux produits issus de forêts gérées durablement.","Une administration publique rattachée au ministère de l'Écologie, financée directement par le budget de l'État."], w:"Son caractère \"à but non lucratif\" le distingue d'une entreprise classique : il existe pour organiser la filière, pas pour en tirer un profit, et ce n'est ni un label de certification ni une administration publique."},
+            {q:"Comment est financé Valdelia et pourquoi n'en tire-t-il aucun profit ?", a:"Par l'éco-contribution versée par les metteurs en marché, répercutée sur le prix de vente, et par les recettes matières ; en tant qu'organisme à but non lucratif, ses recettes doivent seulement équilibrer ses charges.", d:["Par une subvention annuelle de l'État, versée indépendamment du volume de déchets réellement traités chaque année.","Par la revente à des tiers des données commerciales de ses adhérents, en complément de ses autres recettes.","Par une taxe prélevée directement sur les salaires des salariés travaillant dans les ateliers de menuiserie."], w:"L'éco-contribution, payée par le metteur en marché puis répercutée sur le client final, est le mécanisme concret du principe pollueur-payeur : ni subvention publique indépendante du volume traité, ni revente de données, ni taxe sur les salaires."},
+            {q:"Quelles sont les 4 options de valorisation (\"secondes vies\") mises en avant par Valdelia pour le mobilier usagé ?", a:"L'occasion (revente), le réemploi/réparation, l'upcycling (mobilier design à partir de matériaux de réemploi) et le recyclage matières.", d:["L'export vers d'autres pays, le stockage longue durée, l'incinération et l'enfouissement en centre de déchets.","La location longue durée, le don à des associations, la destruction contrôlée et la compensation carbone.","La réparation sous garantie, la garantie étendue, le service après-vente et le remboursement intégral."], w:"L'ordre va du moins transformé (occasion) au plus transformé (recyclage matière) : toujours privilégier la solution la plus haute dans cette hiérarchie, plutôt que l'export, le stockage, l'incinération ou des dispositifs commerciaux classiques."},
+            {q:"D'après les chiffres clés 2024 de Valdelia, quel est approximativement le taux de recyclage et réutilisation de la filière DEA ?", a:"Environ 80 % (80,3 %), pour un taux de valorisation globale proche de 96,5 %.", d:["Environ 20 %, la grande majorité du mobilier usagé étant encore envoyée en enfouissement faute de filière organisée.","Environ 50 %, un taux comparable à celui observé pour la plupart des autres filières REP françaises.","100 %, la filière DEA ne générant, d'après Valdelia, aucun déchet ultime non valorisé."], w:"Un chiffre à retenir pour situer la performance réelle de la filière mobilier : ni une filière encore balbutiante (20%), ni une performance moyenne (50%), ni une valorisation totale parfaite (100%)."},
+            {q:"Quels matériaux issus du mobilier professionnel en fin de vie sont effectivement recyclés en France, selon Valdelia ?", a:"Le bois et les panneaux à base de bois (hors MDF), ainsi que les métaux ferreux et non ferreux ; les autres matériaux (textiles, mousses, plastiques) sont surtout valorisés énergétiquement.", d:["Uniquement les métaux ; le bois est quant à lui systématiquement envoyé en incinération sans tri préalable.","Le verre et les matières minérales en priorité, le bois et les métaux n'étant que marginalement concernés par le recyclage matière.","Tous les matériaux sans distinction, y compris les panneaux MDF et les éléments en PVC, qui se recyclent aussi facilement que le bois massif."], w:"Le recyclage matière fonctionne surtout sur des matériaux \"propres\" et séparables (bois hors MDF, métaux) : le mélange de matières (MDF, PVC) complique toujours le tri, contrairement à ce que suggèrent les autres propositions."},
+            {q:"Pourquoi les panneaux de fibres (MDF) et le PVC sont-ils considérés comme des \"perturbateurs du recyclage\" du mobilier ?", a:"Parce qu'ils compliquent ou empêchent le recyclage matière des éléments d'ameublement (fibres non séparables pour le MDF, composant plastique difficile à valoriser pour le PVC), contrairement au bois massif ou au métal.", d:["Parce que leur vente est interdite en France depuis l'entrée en vigueur de la loi AGEC en 2020.","Parce qu'ils sont classés réglementairement comme déchets dangereux, au même titre que l'amiante.","Parce qu'ils ne peuvent faire l'objet d'aucune valorisation, y compris énergétique, contrairement aux autres matériaux du mobilier."], w:"Ce sont des exemples concrets de mauvais choix d'écoconception en fin de vie : le problème est la difficulté de séparation/recyclage matière, pas une interdiction de vente, un classement en déchet dangereux ou une absence totale de valorisation."},
+            {q:"Quelle bonne pratique d'écoconception Valdelia recommande-t-elle pour faciliter le recyclage du mobilier en fin de vie ?", a:"Favoriser les éléments mono-matériaux (bois ou métal), limiter le nombre de matériaux et de visseries, et concevoir des mobiliers empilables, pliables ou facilement démontables.", d:["Maximiser le nombre de finitions et de revêtements différents, pour élargir le choix esthétique proposé au client final.","Coller systématiquement les éléments entre eux, afin de garantir une meilleure solidité du meuble sur toute sa durée de vie.","Privilégier des matières inertes minérales comme le verre ou le marbre, plus stables chimiquement que le bois ou le métal."], w:"C'est l'application directe, côté conception, de ce que la filière de recyclage demande en aval : moins de mélange de matières et plus de démontabilité, à l'opposé de finitions multiples, du collage systématique ou du choix de matières minérales."},
+            {q:"Un fabricant conçoit un caisson de rangement en collant ensemble un panneau MDF, un placage plastique et des pièces métalliques, pour un coût de production minimal. En quoi ce choix va-t-il à l'encontre des recommandations de Valdelia pour la fin de vie du produit ?", a:"Il cumule deux \"perturbateurs du recyclage\" (MDF et plastique) et un assemblage collé entre plusieurs matières différentes, alors que Valdelia recommande des éléments mono-matériaux, peu nombreux et démontables pour que le mobilier puisse être recyclé ou réemployé en fin de vie.", d:["Il n'y a pas de problème, puisque le coût de production minimal est le seul critère retenu par Valdelia pour évaluer l'écoconception d'un meuble.","Le problème vient uniquement du choix du métal, qui reste le seul matériau réellement perturbateur pour le recyclage du mobilier.","Le problème disparaît dès que le fabricant obtient un écolabel officiel sur ce produit, quelle que soit sa composition matière."], w:"C'est la synthèse des deux cartes précédentes (perturbateurs du recyclage + bonne pratique mono-matériau) appliquée à un cas concret : minimiser le coût de production à court terme peut créer un déchet non recyclable à long terme."}
+          ]
+        },
+        {
+          id: "brezet",
+          title: "La roue de Brezet",
+          cards: [
+            {q:"Qui a mis au point la roue de Brezet et en quelle année a-t-elle été diffusée ?", a:"Mise en place à partir de 1994 par Carolien Van Hemmel, puis diffusée en 1997 par Han Brezet et Carolien Van Hemmel dans le guide \"Ecodesign\" publié par l'UNEP.", d:["Développée en 2011 par la revue Techniques de l'Ingénieur, pour répondre aux besoins des bureaux d'études français.","Créée par l'organisation internationale de normalisation ISO en 2006, en complément de la norme ISO 14006.","Inventée seule par Carolien Van Hemmel en 1980, bien avant la généralisation de l'analyse du cycle de vie."], w:"Retenir que c'est un outil ancien (1994-1997) et institutionnel (UNEP), pas une méthode récente inventée par un bureau d'études, une norme ISO, ni un outil antérieur aux débuts de l'ACV."},
+            {q:"Combien d'axes de réflexion (stratégies d'écoconception) compte la roue de Brezet ?", a:"8 axes, dont le développement de nouveaux concepts (axe \"@\"), la sélection de matériaux à faible impact et l'optimisation du système de fin de vie.", d:["5 axes, chacun correspondant à une étape du cycle de vie du produit étudié.","10 axes, répartis à parts égales entre les trois niveaux composant, structure et système.","3 axes seulement, un pour chaque niveau du produit (composant, structure, système)."], w:"Le nombre exact (8) et la présence d'un axe \"concept\" à part des 7 axes d'amélioration incrémentale sont souvent demandés précisément : les autres décomptes proposés ne correspondent pas à la structure réelle de la roue."},
+            {q:"Quels sont les trois niveaux du produit couverts par les 8 axes de la roue de Brezet ?", a:"Le niveau composant (axes 1 et 2 : matériaux), le niveau structure du produit (axes 3, 4 et 5 : production, distribution, utilisation) et le niveau système (axes 6, 7 et @ : durée de vie, fin de vie, nouveaux concepts).", d:["Le niveau matière, le niveau énergie consommée et le niveau transport jusqu'au client final.","Le niveau local, le niveau national et le niveau international de commercialisation du produit.","Le niveau conception du produit, le niveau production en usine et le niveau vente au client."], w:"La logique va du plus petit (composant/matériau) au plus grand (système) : ça aide à retrouver l'ordre des axes sur la roue, à ne pas confondre avec un découpage par ressource (matière/énergie/transport), par échelle géographique ou par étape commerciale."},
+            {q:"Sous quelle forme visuelle la roue de Brezet est-elle représentée pour comparer un produit existant à un projet d'éco-innovation ?", a:"Un diagramme radar (\"toile d'araignée\"), avec un positionnement qualitatif (+ ou -) sur chacun des 8 axes.", d:["Un histogramme empilé, avec une barre par axe et un impact chiffré en kg équivalent CO2.","Une courbe de tendance linéaire, qui projette l'évolution de l'impact environnemental du produit dans le temps.","Un nuage de points d'ACV, positionnant chaque variante de produit selon son score environnemental global."], w:"Le format radar permet de visualiser d'un coup d'œil les axes déjà forts et ceux à améliorer, avec un positionnement qualitatif (+/-) et non un chiffrage précis comme le suggèrent les autres représentations proposées."},
+            {q:"Quelles sont les trois sessions de la démarche d'éco-innovation construite autour de la roue de Brezet ?", a:"Session d'introduction et de sensibilisation, session de créativité, session de synthèse.", d:["Session de budget prévisionnel, session de prototypage physique, session de vente auprès des clients.","Une session de brainstorming libre, suivie d'un vote à main levée, puis d'une validation par la hiérarchie.","Une session d'audit du produit existant, une session de certification, une session de communication externe."], w:"La structure \"sensibilisation → créativité → synthèse\" suit une logique classique de démarche d'innovation, à distinguer d'étapes plus opérationnelles (budget, prototypage, vente) ou d'un format d'audit/certification/communication."},
+            {q:"Dans la session de créativité, que désigne la \"phase divergente\" ?", a:"Générer un maximum d'idées sur chaque axe de la roue de Brezet, en ne considérant que les aspects environnementaux, sans juger les aspects techniques et économiques.", d:["Trier et sélectionner, parmi les idées déjà émises, celles qui seront effectivement mises en œuvre par l'équipe.","Présenter au groupe le bilan environnemental complet du produit existant, avant de commencer à chercher des idées.","Rédiger la version finale du cahier des charges fonctionnel du futur produit, une fois les idées validées."], w:"Diverger, c'est ne pas filtrer les idées tout de suite, pour ne pas tuer une bonne idée trop tôt en la jugeant trop vite sur le plan technique ou économique — contrairement au tri des idées, à la présentation d'un bilan ou à la rédaction d'un document final, qui interviennent à d'autres moments."},
+            {q:"Que signifie l'ESQCV, citée comme outil d'évaluation environnementale préalable à la démarche de la roue de Brezet ?", a:"L'évaluation simplifiée et qualitative du cycle de vie, une alternative plus rapide et plus légère qu'une ACV complète.", d:["Une norme de sécurité européenne qui encadre la conception des jouets destinés aux enfants.","Un indicateur qui mesure la qualité de l'air à l'intérieur d'un bâtiment une fois le produit installé.","Un label de traçabilité du bois certifié, délivré par un organisme indépendant du type FSC/PEFC."], w:"C'est l'outil d'évaluation rapide utilisé en amont, avant de lancer une vraie ACV normée si l'idée est retenue ; ni une norme de sécurité, ni un indicateur de qualité de l'air, ni un label de traçabilité du bois."},
+            {q:"Quel document est produit à l'issue de la session de synthèse pour chaque idée d'éco-innovation retenue ?", a:"Une fiche projet incluant description, objectifs, gains environnementaux potentiels, faisabilité technique et faisabilité économique.", d:["Un cahier des charges fonctionnel complet, listant l'ensemble des fonctions de service et contraintes du produit.","Un brevet déposé auprès de l'INPI, protégeant l'idée pour une durée maximale de 20 ans.","Un rapport d'ACV normé ISO 14044, quantifiant précisément les impacts environnementaux du nouveau concept."], w:"Elle sert de base de décision pour la direction : sans les volets technique et économique, l'idée reste un vœu pieux sans faisabilité démontrée ; un CdCF, un brevet ou une ACV normée sont d'autres documents, produits à d'autres moments du projet."},
+            {q:"Pendant une session de créativité sur la roue de Brezet, un participant propose immédiatement : \"techniquement impossible, on oublie\" dès qu'une idée est lancée sur l'axe \"fin de vie\". Pourquoi cette réaction est-elle contraire à la méthode ?", a:"Parce qu'elle court-circuite la phase divergente, où l'on doit générer un maximum d'idées sur chaque axe sans juger leur faisabilité technique ou économique ; le tri ne doit intervenir qu'ensuite, en phase convergente.", d:["Parce que l'axe \"fin de vie\" est le seul axe de la roue où la faisabilité technique ne doit jamais être évaluée, même en phase convergente.", "Parce que seul l'animateur de la session a le droit d'émettre un avis sur la faisabilité technique d'une idée.", "Parce qu'une idée jugée irréalisable techniquement doit obligatoirement être retravaillée avant d'être formellement rejetée en session."], w:"C'est l'application directe de la règle \"diverger avant de converger\" vue sur la phase divergente : juger trop vite, quel que soit l'axe concerné, risque de tuer une idée environnementalement intéressante avant même de l'avoir explorée."}
+          ]
+        },
+        {
+          id: "af",
+          title: "Analyse fonctionnelle",
+          cards: [
+            {q:"Que décrit l'analyse fonctionnelle du besoin, selon les normes NF X50-150 et ISO 16271 ?", a:"Le besoin auquel devra répondre le produit, sous forme de fonctions de service et de contraintes.", d:["Uniquement les contraintes réglementaires que le produit devra respecter, à l'exclusion de tout autre aspect du besoin.","Le plan de production détaillé décrivant comment le produit sera fabriqué une fois la solution technique choisie.","Le prix de revient prévisionnel du produit, estimé avant même d'avoir formulé la moindre fonction attendue."], w:"Elle décrit le \"quoi\" (le besoin, en fonctions de service et contraintes) avant le \"comment\" (la solution technique) : elle ne se limite pas aux contraintes réglementaires et ne porte ni sur la production ni sur le prix de revient."},
+            {q:"Qu'est-ce que la \"bête à cornes\" et à quoi sert-elle ?", a:"Un outil qui formule le besoin fondamental d'un système en répondant à : à qui/quoi rend-il service, sur qui/quoi agit-il, dans quel but.", d:["Un diagramme de planification de type Gantt, utilisé pour répartir les tâches du projet dans le temps.","Une méthode de calcul de la résistance mécanique d'une pièce soumise à des efforts connus.","Un outil de calcul qui additionne les coûts de fabrication prévisionnels d'un produit."], w:"Les trois questions (à qui/quoi, sur qui/quoi, dans quel but) évitent de confondre le besoin réel avec une solution déjà imaginée à l'avance ; elle ne sert ni à planifier, ni à calculer une résistance, ni à chiffrer un coût."},
+            {q:"Quelle est la différence entre une fonction principale et une fonction contrainte ?", a:"La fonction principale justifie la création du produit (pourquoi il existe) ; la fonction contrainte limite la liberté du concepteur sans justifier à elle seule l'existence du produit (sécurité, normes, adaptation au contexte...).", d:["La fonction principale est toujours de nature technique, alors que la fonction contrainte est toujours de nature esthétique.","Ce sont deux termes strictement synonymes, utilisés indifféremment selon les auteurs et les cours.","La fonction contrainte ne s'applique qu'aux produits électroniques, jamais aux produits mécaniques ou en bois."], w:"Une fonction contrainte peut disparaître sans tuer le produit (ex : une norme qui change), contrairement à la fonction principale qui est sa raison d'être ; la distinction ne porte ni sur technique/esthétique, ni sur un domaine de produit en particulier."},
+            {q:"Qu'est-ce qu'une \"fonction d'estime\" ?", a:"Une fonction liée au goût de l'utilisateur, qui déclenche généralement l'acte d'achat (esthétique, image de marque...).", d:["Une fonction qui évalue objectivement la solidité mécanique du produit face aux sollicitations prévues.","Une fonction qui n'existe que pour les produits de luxe, absente du cahier des charges des produits courants.","Une fonction qui mesure l'impact environnemental du produit sur l'ensemble de son cycle de vie."], w:"Elle explique pourquoi deux produits équivalents techniquement ne se vendent pas pareil : le déclencheur est souvent subjectif (goût, image), pas une mesure objective de solidité, un statut \"produit de luxe\" ou un impact environnemental."},
+            {q:"Quelle est la différence entre une fonction de service et une fonction technique ?", a:"La fonction de service répond à \"à quoi cela sert\" du point de vue de l'utilisateur ; la fonction technique répond à \"comment le faire\" du point de vue de la solution retenue.", d:["La fonction de service concerne uniquement la période d'après-vente, la fonction technique uniquement la fabrication initiale.","Ce sont deux étapes successives et chronologiques du cycle de vie du produit, l'une suivant toujours l'autre.","La fonction technique ne s'applique qu'aux produits logiciels, jamais aux produits physiques comme le mobilier."], w:"Une même fonction de service peut être remplie par plusieurs fonctions techniques différentes : c'est ce qui ouvre la place à la créativité en conception, et ce n'est ni une question de SAV/fabrication, ni une étape du cycle de vie, ni limité aux logiciels."},
+            {q:"Qu'est-ce que le \"diagramme pieuvre\" en analyse fonctionnelle ?", a:"Un diagramme qui recense les éléments du milieu extérieur (EME) autour du produit, reliés par une fonction principale ou des fonctions contraintes.", d:["Un outil de calcul qui agrège plusieurs indicateurs d'une ACV multicritère en un seul score global.","Un planning de production représenté sous forme d'étoile, répartissant les tâches entre plusieurs postes de travail.","Une méthode de notation comparative des fournisseurs, utilisée lors du choix d'un sous-traitant."], w:"Il traduit visuellement le cahier des charges fonctionnel : chaque flèche du diagramme devient ensuite une ligne du tableau de fonctions ; il ne sert ni à calculer une ACV, ni à planifier, ni à noter des fournisseurs."},
+            {q:"Comment doit-on formuler une fonction, selon la méthode vue en cours ?", a:"Un verbe à l'infinitif (l'action) suivi d'un complément (pour qui / sur quoi), sans préjuger d'une solution technique ni utiliser de négation.", d:["Toujours conjuguée au futur et à la première personne du singulier, comme un engagement personnel du concepteur.","Toujours sous la forme d'une question fermée appelant une réponse par oui ou par non.","Toujours réduite à un chiffre normalisé ISO, sans aucune formulation en langage courant."], w:"Éviter de préjuger une solution technique et la négation garde la porte ouverte à toutes les solutions possibles ; la forme attendue est \"verbe à l'infinitif + complément\", pas un futur à la première personne, une question fermée ou un simple chiffre."},
+            {q:"Qu'est-ce que \"caractériser\" une fonction de service ?", a:"Définir un critère d'appréciation et lui attribuer un niveau de performance attendu, assorti d'une flexibilité (tolérance).", d:["Lui attribuer un prix de vente prévisionnel, destiné à figurer dans le futur devis du produit.","La classer par ordre alphabétique dans le tableau des fonctions du cahier des charges.","La traduire dans une autre langue, en vue d'une commercialisation du produit à l'export."], w:"Sans niveau ni flexibilité chiffrés, une fonction reste trop vague pour être vérifiée ou comparée entre plusieurs solutions ; caractériser ne consiste ni à fixer un prix, ni à classer alphabétiquement, ni à traduire."},
+            {q:"Que signifie le sigle CdCf et que contient-il ?", a:"Cahier des charges fonctionnel : document qui exprime un besoin en fonctions de service et contraintes, avec pour chacune un critère d'appréciation, un niveau et une flexibilité (norme NF EN 16271).", d:["Un document à vocation uniquement commerciale, utilisé pour négocier le prix avec le client, sans valeur technique.","Code des Clauses Fiscales : un document administratif encadrant la fiscalité applicable au projet.","Un simple devis chiffré du projet, sans description des fonctions ni des contraintes à respecter."], w:"C'est le document pivot qui relie le besoin exprimé (fonctions de service et contraintes, chacune caractérisée) aux exigences chiffrées utilisées ensuite pour choisir matériaux et procédés ; ce n'est ni un document commercial, ni fiscal, ni un simple devis."},
+            {q:"Pour une chaise de bureau, la fonction \"résister au poids de l'utilisateur\" et la fonction \"s'intégrer visuellement aux autres meubles du bureau\" sont-elles du même type ? Pourquoi ?", a:"Non : la première est une fonction principale (elle justifie l'existence même de la chaise, qui ne sert à rien si elle ne supporte pas l'utilisateur) ; la seconde est une fonction contrainte, qui limite les choix de style sans être la raison d'être du produit.", d:["Oui, les deux sont des fonctions principales, puisqu'elles portent toutes les deux sur un aspect du produit fini.","Oui, les deux sont des fonctions contraintes, puisqu'aucune des deux ne constitue à elle seule un argument de vente.","Non, mais c'est l'inverse : résister au poids est une fonction contrainte, s'intégrer visuellement est la fonction principale."], w:"C'est l'application directe de la distinction fonction principale / fonction contrainte vue plus haut : une chaise qui ne supporte pas l'utilisateur n'a plus de raison d'être, alors qu'une chaise disgracieuse mais solide reste fonctionnelle, même si elle se vend moins bien."}
+          ]
+        },
+        {
+          id: "demarche",
+          title: "La démarche de conception",
+          cards: [
+            {q:"Selon le Grand Dictionnaire Terminologique, qu'est-ce que la conception en ingénierie ?", a:"Une activité créatrice qui consiste à élaborer un projet en partant des besoins exprimés, des moyens existants et des possibilités technologiques, dans le but de créer un bien ou un service.", d:["Uniquement la réalisation physique du prototype final, une fois toutes les décisions de conception déjà prises.","La vente du produit fini au client, une fois la conception et la fabrication entièrement terminées.","Le contrôle qualité réalisé en fin de chaîne de production, sur des produits déjà conçus et fabriqués."], w:"Elle rappelle que concevoir part toujours de trois éléments : un besoin, des moyens existants, et une technologie disponible — jamais d'une page blanche totale, et jamais d'une étape aussi tardive que le prototype, la vente ou le contrôle qualité final."},
+            {q:"Quelle est la différence entre innovation, adaptation et modification en conception ?", a:"L'innovation crée un produit totalement nouveau (rare) ; l'adaptation transfère un principe existant à un nouveau contexte ; la modification optimise un produit existant (la plus fréquente).", d:["Ce sont trois synonymes qui désignent une seule et même démarche, employés selon les préférences de chaque auteur.","L'innovation ne concerne que les actions marketing autour du produit, la modification uniquement les aspects techniques.","L'adaptation est une démarche réservée aux produits de luxe, inapplicable aux produits de grande consommation."], w:"La modification est la plus fréquente en entreprise car la moins risquée et la moins coûteuse ; l'innovation pure reste rare car coûteuse et incertaine : la distinction ne tient ni du vocabulaire, ni du marketing/technique, ni d'un marché particulier."},
+            {q:"Quelle est la différence entre un besoin et un désir, selon la pyramide de Maslow appliquée à la conception ?", a:"Le besoin est ce qui est vital pour l'utilisateur (attentes profondes) ; le désir est la manière dont il envisage d'y répondre, ce qui restreint davantage les solutions envisageables.", d:["Le désir est systématiquement plus rationnel et mieux justifié que le besoin, qui reste purement émotionnel.","Le besoin, au sens de la pyramide de Maslow appliquée à la conception, ne concerne que les produits alimentaires et de première nécessité.","Ce sont des synonymes interchangeables dans la rédaction d'un cahier des charges, sans conséquence sur les solutions envisagées."], w:"Confondre les deux fait souvent rater le vrai problème à résoudre : le désir n'est qu'une solution parmi d'autres pour satisfaire le besoin réel, qui n'est ni purement émotionnel, ni réservé à l'alimentaire, ni interchangeable avec le désir."},
+            {q:"Pourquoi faut-il distinguer le client de l'utilisateur dans une démarche de conception ?", a:"Le client est celui qui achète, l'utilisateur celui qui bénéficie du produit ; il faut satisfaire les deux pour concevoir judicieusement (ex : un parent achète un jouet pour son enfant).", d:["Parce que l'utilisateur n'a, par définition, jamais la moindre influence sur la décision d'achat du produit.","Parce que seul le client doit être pris en compte dans une démarche de conception, l'utilisateur restant secondaire.","Parce que la réglementation française impose cette distinction pour tout produit commercialisé sur le territoire."], w:"Concevoir uniquement pour le client sans penser à l'utilisateur peut créer un produit mal adapté à l'usage réel ; ce n'est ni une question d'absence totale d'influence, ni une priorité légale, ni une obligation réglementaire."},
+            {q:"Quelles sont les 6 grandes étapes de la démarche générale de conception présentée en cours ?", a:"Identification des besoins, conceptualisation des solutions (idéation), recherche des solutions techniques, sélection des meilleures solutions, modélisation, réalisation.", d:["Vente du produit, production en série, contrôle qualité, service après-vente, recyclage, archivage du dossier.","Idée initiale, dépôt de brevet, fabrication du prototype, lancement en production, campagne marketing, distribution.","Rédaction du cahier des charges, établissement d'un devis, facturation, livraison au client, garantie, clôture du dossier."], w:"Retenir l'ordre logique : on identifie d'abord le besoin, puis on explore des idées, avant de chercher des solutions techniques précises ; les trois autres séquences mélangent des étapes commerciales, administratives ou de production qui ne correspondent pas à cette démarche de conception."},
+            {q:"Qu'est-ce que la notion d'itération dans la démarche de conception ?", a:"Le fait de revenir de manière cyclique sur une étape précédente pour l'améliorer en continu, sans jamais arrêter de chercher d'autres solutions alternatives.", d:["La répétition à l'identique du même prototype, réalisée plusieurs fois pour vérifier la reproductibilité de la fabrication.","Le principe selon lequel on ne doit jamais revenir sur une décision de conception une fois qu'elle a été prise.","Une étape obligatoire du projet, réservée exclusivement à la toute fin de la démarche de conception."], w:"L'itération n'est pas un échec : c'est une boucle volontaire d'amélioration, différente d'une simple répétition à l'identique, d'un refus de revenir en arrière, ou d'une étape figée en fin de projet."},
+            {q:"Quels sont les trois grands types d'évaluation des performances d'une solution technique ?", a:"La simulation numérique, l'expérimentation (sur une partie du produit) et le prototypage (sur le produit complet).", d:["Le vote à main levée, la recherche de consensus en réunion et le tri croisé des idées proposées.","L'ACV, l'analyse coûts-bénéfices (ACB) et l'AMDEC, trois outils réservés à l'évaluation environnementale et à la fiabilité.","Le benchmarking concurrentiel, le sondage auprès des clients et l'entretien individuel avec les utilisateurs."], w:"Du moins coûteux (simulation) au plus coûteux (prototype complet) : on les utilise généralement dans cet ordre pour limiter les risques et les coûts ; les autres outils cités (vote, ACV/ACB/AMDEC, étude de marché) interviennent à d'autres moments ou pour d'autres objectifs du projet."},
+            {q:"Quelle est la différence entre un croquis de principe et un croquis technique ?", a:"Le croquis de principe privilégie l'aspect esthétique pour présenter un concept ; le croquis technique privilégie la compréhension détaillée d'une solution technique (dimensions, assemblages...).", d:["Le croquis technique est obligatoirement réalisé sur ordinateur, le croquis de principe obligatoirement réalisé à la main.","Ce sont deux termes strictement équivalents, l'un étant simplement l'appellation anglaise de l'autre.","Le croquis de principe n'est utilisé qu'en toute fin de projet, pour présenter le produit terminé au client final."], w:"Le croquis de principe sert à vendre une idée, le croquis technique sert à la fabriquer : deux publics, deux objectifs différents, indépendamment de l'outil utilisé (main ou ordinateur) ou du moment du projet."},
+            {q:"Que protège un brevet et pour quelle durée maximale en France ?", a:"Une innovation technique (produit ou procédé) nouvelle, impliquant une activité inventive et une application industrielle ; protection maximale de 20 ans, obtenue auprès de l'INPI.", d:["Toute idée, y compris une idée non technique ou abstraite, sans limite de durée une fois le dépôt accepté.","Uniquement les marques commerciales d'une entreprise, protégées pour une durée de 10 ans renouvelable.","Uniquement l'aspect esthétique extérieur d'un produit, protégé pour une durée maximale de 5 ans."], w:"Les trois conditions (nouveauté, activité inventive, application industrielle) doivent être réunies ensemble pour une durée maximale de 20 ans : le brevet ne protège ni une idée abstraite sans limite, ni une marque, ni le seul aspect esthétique (qui relève d'autres protections)."},
+            {q:"Un ingénieur reprend un système d'attache déjà utilisé dans l'automobile pour l'appliquer, sans le modifier, à un nouveau meuble de bureau. De quel type de démarche de conception s'agit-il ?", a:"D'une adaptation : un principe existant, déjà validé dans un autre contexte, est transféré vers un nouveau contexte d'usage, sans qu'il s'agisse d'une invention totalement nouvelle ni d'une simple optimisation d'un produit déjà existant.", d:["D'une innovation pure, puisque ce système d'attache n'avait jamais été utilisé dans le secteur du mobilier de bureau auparavant.", "D'une modification, puisque le système d'attache reste rigoureusement identique à celui utilisé dans l'automobile.", "D'aucune démarche de conception reconnue, puisqu'aucun nouveau composant n'a été inventé pour ce projet."], w:"C'est l'application directe de la distinction innovation / adaptation / modification vue plus haut : changer de contexte d'usage sans changer le principe lui-même est la définition même de l'adaptation, ni une innovation (rien de nouveau n'est inventé), ni une modification (qui porterait sur un produit déjà existant dans ce contexte)."}
+          ]
+        },
+        {
+          id: "multimat",
+          title: "Approche multi-matériaux",
+          cards: [
+            {q:"Quelle est la différence entre un alliage et un composite ?", a:"Un alliage est un mélange de matériaux miscibles (ex : acier) ; un composite est un assemblage de matériaux non miscibles, typiquement une matrice et un renfort (ex : contreplaqué, béton).", d:["Ce sont deux termes strictement synonymes, l'un étant la désignation technique de l'autre selon les normes.","Le terme alliage ne s'applique qu'aux matériaux de la famille des polymères, jamais aux métaux.","Un composite est par définition toujours biosourcé, contrairement à un alliage qui serait toujours pétrosourcé."], w:"La miscibilité tranche : un alliage forme une seule phase homogène, un composite garde ses constituants distincts et visibles ; la distinction ne tient ni du vocabulaire, ni de la famille polymère/métal, ni de l'origine biosourcée ou non."},
+            {q:"Dans un matériau composite, quel est le rôle respectif de la matrice et du renfort ?", a:"Le renfort assure les propriétés mécaniques du composite ; la matrice répartit les sollicitations mécaniques sur le renfort et le protège (UV, abrasion, température).", d:["La matrice assure seule la résistance mécanique du composite, le renfort ne servant qu'à le protéger des UV.","Les deux jouent un rôle strictement identique et peuvent être interchangés sans conséquence sur les propriétés du composite.","Le renfort n'a qu'un rôle esthétique, la matrice assurant seule l'ensemble des fonctions mécaniques et de protection."], w:"Retenir le partage des rôles : le renfort porte la charge mécanique, la matrice transmet et protège — aucun des deux ne suffit seul, et leurs rôles ne sont ni inversés, ni interchangeables, ni réduits à l'esthétique."},
+            {q:"D'après la définition de l'ADEME (2025) citée en cours, qu'est-ce qu'un composite biosourcé ?", a:"Un composite renforcé par des fibres naturelles, indépendamment de la nature de la matrice qui peut être biosourcée ou non.", d:["Un composite dont la matrice ET le renfort doivent obligatoirement être tous les deux biosourcés pour mériter cette appellation.","Un composite composé uniquement de bois massif, à l'exclusion de toute fibre naturelle d'une autre origine végétale.","Tout matériau recyclable en fin de vie, qu'il contienne ou non des fibres naturelles dans sa composition."], w:"Le critère porte uniquement sur le renfort (fibres naturelles) : une matrice pétrosourcée n'empêche donc pas d'appeler le composite \"biosourcé\", contrairement à une exigence sur les deux composants, au bois massif seul, ou à un critère de recyclabilité."},
+            {q:"Selon la classification par liaison chimique, à quelle famille appartient le bois et quelles en sont les propriétés principales ?", a:"Famille des polymères (liaison covalente) : mise en forme relativement facile, température d'usage limitée, isolant thermique et électrique.", d:["Famille des métaux, caractérisée par une bonne conductivité électrique et une grande dureté.","Famille des céramiques, caractérisée par une grande résistance thermique mais une forte fragilité.","Famille des composites, puisqu'il s'agit par définition d'un assemblage d'au moins deux matières différentes."], w:"Le classement se fait par type de liaison chimique, pas par origine (naturelle/synthétique) ni par apparence visuelle : d'où le bois rejoint la famille des polymères, et non celle des métaux, céramiques ou composites."},
+            {q:"Qu'est-ce qu'un \"indice de performance\" en sélection de matériaux ?", a:"Un indicateur qui combine plusieurs propriétés (ex : résistance/masse volumique) pour comparer objectivement des matériaux vis-à-vis d'un objectif donné (ex : minimiser le poids à résistance égale).", d:["Le prix au kilogramme du matériau, seul critère retenu pour comparer objectivement plusieurs candidats.","Une note qualitative attribuée par un expert du secteur, sans aucun calcul à partir des propriétés du matériau.","La durée de vie garantie par le fabricant, utilisée seule pour classer les matériaux candidats entre eux."], w:"Un indice de performance combine toujours au moins deux propriétés physiques du matériau : comparer une seule propriété isolée (prix, avis d'expert, durée de garantie) ne suffit pas à le définir."},
+            {q:"Pourquoi le bois est-il souvent avantageux face à l'acier sur un diagramme d'Ashby (module d'élasticité / masse volumique) ?", a:"Parce qu'à rigidité comparable, le bois est beaucoup plus léger que l'acier (manutention et mise en œuvre facilitées), tout en restant plus rigide et résistant que les élastomères.", d:["Parce que le module d'élasticité du bois est, dans l'absolu, toujours supérieur à celui de l'acier.","Parce que le bois est systématiquement moins cher à l'achat que l'acier, quelle que soit l'essence considérée.","Parce que le diagramme d'Ashby ne prend en compte que le critère du prix des matériaux comparés."], w:"Le diagramme d'Ashby compare rigidité et masse volumique ensemble : le bois gagne sur le rapport rigidité/poids, pas sur la rigidité brute (qui reste inférieure à celle de l'acier), ni sur le prix, qui n'est pas l'axe du diagramme."},
+            {q:"Que représentent les trois composantes [matériau, procédé, forme] dans le choix d'une solution technique ?", a:"La fonction d'un composant est assurée par la combinaison de ces trois éléments ; la forme et le matériau choisis limitent les procédés possibles, et inversement.", d:["Trois étapes totalement indépendantes du projet, sans aucune influence de l'une sur les deux autres.","Trois critères réservés exclusivement à l'évaluation environnementale d'un produit déjà conçu.","Les trois phases obligatoires d'une analyse du cycle de vie, menées dans cet ordre précis."], w:"Ces trois éléments se contraignent mutuellement : changer un matériau peut imposer de changer de procédé ou de revoir la forme ; ce ne sont ni des étapes indépendantes, ni des critères d'évaluation environnementale, ni des phases d'ACV."},
+            {q:"Qu'est-ce qu'une FDES (Fiche de Déclaration Environnementale et Sanitaire) ?", a:"Un document normé (NF EN 15804) décrivant les impacts environnementaux d'un matériau ou produit de construction sur une unité fonctionnelle donnée, disponible notamment sur la base INIES.", d:["Un certificat de garantie commerciale délivré par le fabricant, sans valeur environnementale normée.","Une fiche de sécurité incendie obligatoire, exigée pour tout matériau utilisé en construction.","Un document réservé aux matériaux plastiques, sans équivalent pour le bois ou les matériaux minéraux."], w:"C'est l'équivalent, pour les produits de construction, d'une ACV normalisée et publique : la base INIES centralise ces fiches en France ; ce n'est ni une garantie commerciale, ni un document de sécurité incendie, ni un outil réservé au plastique."},
+            {q:"Pourquoi faut-il être prudent avec les valeurs moyennes des matériaux biosourcés lors d'un choix de matériau ?", a:"Parce qu'ils sont par nature très variables (hétérogénéité du bois par exemple) : une valeur moyenne seule peut conduire à une décision peu robuste, il faut tenir compte de l'incertitude.", d:["Parce que les matériaux biosourcés n'ont, à proprement parler, aucune propriété mécanique réellement mesurable en laboratoire.","Parce que la base de données Granta ne contient, à ce jour, aucune donnée concernant les matériaux biosourcés.","Parce que la réglementation française interdit l'utilisation de matériaux biosourcés dans un usage structurel."], w:"Une moyenne ignore la variabilité naturelle du bois : deux lots du même matériau peuvent avoir des propriétés assez différentes, ce qui n'a rien à voir avec une absence de propriété mesurable, un manque de données ou une interdiction réglementaire."},
+            {q:"Pour une même fonction (ex : une étagère qui doit supporter une charge donnée sans trop fléchir), pourquoi le choix entre le bois et l'acier peut-il changer selon qu'on raisonne en indice de performance \"à masse minimale\" ou en indice de performance \"à coût minimal\" ?", a:"Parce que ce sont deux indices de performance différents, construits à partir de propriétés différentes du matériau (masse volumique dans un cas, prix au kilo dans l'autre) : un matériau optimal pour l'un n'est pas automatiquement optimal pour l'autre.", d:["Parce que le module d'élasticité d'un matériau change selon le critère économique ou technique retenu par l'ingénieur.", "Parce qu'un seul indice de performance existe réellement en sélection de matériaux, les autres n'étant que des approximations commerciales.", "Parce que le diagramme d'Ashby interdit de comparer deux matériaux dès qu'un critère économique est ajouté à l'étude."], w:"C'est l'application directe de la définition de l'indice de performance vue plus haut : changer l'objectif (masse minimale vs coût minimal) change l'indice à maximiser, donc potentiellement le matériau qui sort gagnant de la comparaison."}
+          ]
+        },
+        {
+          id: "procedes",
+          title: "Procédés de fabrication et impact environnemental",
+          cards: [
+            {q:"Quelle est la différence entre un flux poussé et un flux tiré en production ?", a:"En flux poussé, la fabrication est lancée sur prévision des ventes avant la commande client (grandes séries, marge faible, objectif : optimiser le process) ; en flux tiré, elle démarre sur demande réelle du client (petites séries, marge forte, objectif : respecter le délai).", d:["Le flux poussé ne concerne que la fabrication de produits uniques sur mesure, le flux tiré uniquement les grandes séries standardisées.","Ce sont deux étapes qui se succèdent systématiquement dans un même processus de fabrication, l'une après l'autre.","Le flux tiré est une organisation réservée à la fabrication de produits à partir de matières recyclées."], w:"Le flux poussé répond à \"combien produire pour l'avenir\", le flux tiré à \"que produire pour cette commande précise\" : deux logiques opposées, qui ne tiennent ni du caractère unique/série du produit, ni d'un enchaînement chronologique, ni de l'origine recyclée ou non de la matière."},
+            {q:"Quelle est la différence entre une machine-outil et une ligne de production ?", a:"Une machine-outil façonne seule un produit grâce à une source d'énergie ; une ligne de production est un ensemble de machines-outils cadencées et reliées entre elles pour transformer un produit selon une approche de lot de production.", d:["Ce sont deux termes strictement synonymes, la \"ligne de production\" étant simplement l'appellation industrielle de la machine-outil.","Une ligne de production, par définition, ne comporte jamais la moindre machine-outil parmi ses équipements.","Une machine-outil isolée est toujours plus productive, à elle seule, qu'une ligne de production complète."], w:"Une ligne de production est un assemblage de plusieurs machines-outils synchronisées : comprendre chaque machine aide à comprendre la ligne entière ; ce ne sont ni des synonymes, ni des éléments exclusifs l'un de l'autre, ni comparables en productivité brute de cette façon."},
+            {q:"Quelle est la différence entre une MOPN et une MOCN ?", a:"La MOPN (positionnement numérique) nécessite l'intervention d'un opérateur pour réaliser l'usinage malgré un réglage numérique ; la MOCN (commande numérique) réalise l'usinage sans intervention de l'opérateur.", d:["La MOPN est, par construction, toujours un modèle de machine plus récent que la MOCN sur le marché.","Ce sont deux termes qui désignent exactement la même catégorie de machine, selon le vocabulaire utilisé par le fabricant.","La MOCN ne peut usiner que du bois massif, alors que la MOPN serait réservée exclusivement aux panneaux."], w:"La différence porte uniquement sur l'usinage (avec ou sans intervention de l'opérateur), le réglage étant numérique dans les deux cas ; elle ne tient ni d'une ancienneté technologique, ni d'un simple synonyme, ni d'une limite massif/panneau."},
+            {q:"Pourquoi une CNC 5 axes est-elle généralement utilisée sur du bois massif plutôt que sur du panneau ?", a:"Parce qu'elle combine 3 translations et 2 rotations (hors rotation outil), ce qui permet d'usiner des formes complexes en volume, alors qu'une CNC 3 axes (translations seules) suffit pour le travail à plat du panneau.", d:["Parce qu'une CNC 5 axes coûte systématiquement moins cher à l'achat qu'une CNC 3 axes équivalente.","Parce qu'un panneau, par nature, ne peut techniquement pas être usiné par une machine à commande numérique.","Parce que l'usinage d'un panneau en CNC 3 axes est réservé exclusivement au secteur de la construction."], w:"Plus d'axes = plus de liberté de mouvement autour de la pièce, utile pour des formes en volume plutôt que pour un usinage à plat ; la différence ne tient ni du prix, ni d'une impossibilité technique sur panneau, ni d'une limite sectorielle."},
+            {q:"D'après l'exemple d'ACV simplifiée d'une CNC vu en cours, quelle phase du cycle de vie de la machine génère le plus de CO2 ?", a:"La phase d'utilisation (consommation électrique de la machine), largement devant la production de l'équipement, le transport et la fin de vie.", d:["La phase de transport de la machine depuis le fabricant jusqu'au site de l'usine qui l'exploite.","La phase de fabrication de la machine elle-même, avant sa première mise en service dans l'atelier.","La phase de fin de vie de la machine, incluant son démontage et son recyclage en fin d'exploitation."], w:"Règle générale en écoconception des équipements industriels : l'usage pèse souvent plus lourd que la fabrication de la machine elle-même, loin devant le transport ou la fin de vie."},
+            {q:"Pourquoi l'emplacement géographique du site de production influence-t-il fortement l'empreinte carbone d'une machine-outil en service ?", a:"Parce que l'impact carbone de la phase d'utilisation dépend directement du mix énergétique du pays (part de production électrique décarbonée ou non).", d:["Parce que seul le prix local de l'électricité détermine l'empreinte carbone d'une machine, indépendamment de son origine.","Parce qu'une même machine-outil consomme une quantité d'énergie différente selon le climat du pays où elle est installée.","Parce que les normes de sécurité applicables localement modifient directement la consommation électrique de la machine."], w:"Deux machines identiques peuvent avoir des bilans carbone très différents simplement parce qu'elles sont installées dans des pays à mix électrique différent, pas parce que le prix de l'électricité, le climat ou les normes de sécurité changeraient la consommation elle-même."},
+            {q:"Pour comparer équitablement deux machines-outils sur le plan environnemental, quelle notion faut-il impérativement appliquer ?", a:"L'unité fonctionnelle : comparer deux machines qui produisent le même résultat (même nombre de pièces conformes) dans les mêmes conditions ; si une machine est deux fois plus lente, son impact \"utilisation\" doit être doublé pour la comparaison.", d:["Le prix d'achat de chaque machine, rapporté à sa durée de garantie constructeur.","La date de mise sur le marché de chaque machine, les modèles les plus récents étant présumés plus performants.","La couleur et la marque commerciale de chaque machine, souvent associées par les utilisateurs à un niveau de qualité perçu."], w:"Comparer la consommation brute de deux machines sans tenir compte de leur vitesse de production fausse totalement la comparaison ; c'est le même principe que l'unité fonctionnelle vue en ACV, pas une question de prix, d'ancienneté ou d'image de marque."},
+            {q:"Selon les données FCBA citées en cours, quels sont les postes les plus consommateurs d'énergie électrique dans une scierie ?", a:"Le sciage premier débit (scies de tête, slabber), le séchage, l'aspiration et l'air comprimé.", d:["L'éclairage et le chauffage des bureaux administratifs du site de la scierie.","Le transport routier des grumes depuis la forêt jusqu'au site de la scierie.","L'emballage des produits finis avant leur expédition vers les clients."], w:"Le sciage premier débit domine car c'est l'étape qui enlève le plus de matière avec le plus de puissance mécanique mobilisée, loin devant les bureaux administratifs, le transport routier ou l'emballage final."},
+            {q:"Deux ateliers usinent la même pièce en bois massif comportant une forme galbée en volume : l'un avec une CNC 3 axes en plusieurs reprises et retournements manuels de la pièce, l'autre avec une CNC 5 axes en une seule opération continue. Pourquoi l'option 5 axes est-elle souvent plus pertinente ici, au-delà du seul critère de temps de cycle ?", a:"Parce que les 2 rotations supplémentaires permettent d'atteindre toutes les faces de la forme galbée sans retourner manuellement la pièce, ce qui réduit les reprises, les risques d'erreur de positionnement et donc potentiellement la non-qualité, en plus du gain de temps.", d:["Parce qu'une CNC 5 axes consomme systématiquement moins d'énergie électrique qu'une CNC 3 axes, quelle que soit la pièce usinée.","Parce qu'une CNC 3 axes est, par construction, incapable d'usiner une pièce en bois massif, contrairement à une CNC 5 axes.","Parce que le nombre d'axes d'une machine n'a aucune incidence sur la nécessité de retourner ou non la pièce en cours d'usinage."], w:"C'est l'application concrète de la différence 3 axes / 5 axes vue plus haut (translations seules vs translations + rotations) : plus d'axes signifie plus de liberté de mouvement autour de la pièce, donc moins de manipulations manuelles sur une forme complexe en volume."}
+          ]
+        },
+        {
+          id: "vocab",
+          title: "Vocabulaire des procédés bois",
+          cards: [
+            {q:"Quelle est la différence entre une grume et une bille, dans le vocabulaire de la scierie ?", a:"La grume est le tronc d'arbre abattu, ébranché et écimé, prêt à être débité ; la bille est une section de grume destinée au sciage.", d:["Ce sont deux synonymes strictement interchangeables, utilisés indifféremment selon les régions de production.","La bille désigne uniquement le bois une fois qu'il est passé par l'étape de séchage en cellule climatisée.","La grume désigne le produit fini, une fois que les planches ont été rabotées à leurs dimensions définitives."], w:"La grume est l'état brut après abattage, la bille en est une portion calibrée prête à entrer en scierie : un mot désigne l'origine, l'autre la section de travail, et ni le séchage ni le rabotage n'entrent dans cette distinction."},
+            {q:"Qu'est-ce qu'un avivé et en quoi diffère-t-il d'un carrelet ?", a:"L'avivé est une poutre de bois massif brute de sciage sur ses 4 faces (non rabotée) ; le carrelet est reconstitué par collage/aboutage puis scié et raboté aux dimensions finies.", d:["Ce sont deux termes qui désignent exactement le même produit, l'un étant l'appellation régionale de l'autre.","L'avivé est, par définition, toujours plus long qu'un carrelet, quelle que soit la commande passée.","Le carrelet désigne uniquement les pièces de bois massif destinées à l'export vers l'étranger."], w:"L'avivé garde les traces de sciage (brut), le carrelet est un produit retravaillé (collé, raboté) : le carrelet est toujours plus élaboré, indépendamment de la longueur des pièces ou de leur destination commerciale."},
+            {q:"Qu'appelle-t-on la \"dosse\" en sciage ?", a:"La première et la dernière planche sciée dans un tronc, avec une face plane et l'autre bombée (côté écorce).", d:["La plus belle planche obtenue lors du sciage, réservée en priorité aux produits haut de gamme.","Le nom donné à la sciure fine récupérée en fin d'opération de sciage du tronc.","La pièce centrale du tronc, considérée comme la plus résistante mécaniquement de toutes."], w:"La dosse est la première coupe avant d'atteindre le bois droit et utilisable, donc souvent un sous-produit plutôt qu'un produit noble ; ce n'est ni la plus belle planche, ni de la sciure, ni la pièce centrale la plus résistante."},
+            {q:"Que mesure le \"rendement matière\" en scierie ?", a:"Le rapport entre le volume de produits finis obtenus et le volume de grumes utilisées en entrée.", d:["Le nombre d'heures de production réalisées chaque jour par l'ensemble de la scierie.","Le pourcentage de bois certifié FSC ou PEFC utilisé parmi les grumes entrées en scierie.","La vitesse d'avance des grumes sur la ligne de sciage, exprimée en mètres par minute."], w:"Un rendement matière faible signifie beaucoup de perte (sciure, chutes) par rapport au volume de grume entré : un indicateur clé d'efficacité, distinct du temps de production, du taux de certification ou de la vitesse de la ligne."},
+            {q:"En construction bois, qu'est-ce que le \"contreventement\" d'une structure ?", a:"L'ensemble des éléments qui assurent la stabilité d'une structure face aux forces horizontales (vent, séisme...).", d:["Le revêtement extérieur qui protège les murs d'un bâtiment contre les intempéries et les UV.","La membrane qui empêche la diffusion de vapeur d'eau à travers les parois du bâtiment.","L'élément triangulé de charpente qui supporte directement le poids de la toiture."], w:"Sans contreventement, une ossature reste stable verticalement mais peut se déformer latéralement sous le vent ; ce rôle n'est ni celui d'un revêtement extérieur, ni d'un pare-vapeur, ni d'un simple élément porteur de toiture."},
+            {q:"Quelle est la différence entre une maison \"poteaux-poutres\" et une maison à \"ossature bois\" (MOB) ?", a:"La maison poteaux-poutres utilise de grandes sections de bois (poteaux, poutres) avec des remplissages entre elles ; la MOB repose sur une structure de montants et traverses de plus petite section, isolée entre les éléments.", d:["Ce sont deux appellations commerciales différentes pour désigner une seule et même technique constructive.","Une maison à ossature bois (MOB) ne comporte, par définition, jamais aucun panneau de contreventement.","Une maison poteaux-poutres est toujours construite en bois massif empilé horizontalement, comme un chalet en madriers."], w:"La différence de section (grande vs petite) change toute la logique constructive : remplissage libre pour poteaux-poutres, isolation intégrée pour la MOB ; ce n'est ni un simple nom commercial, ni une absence systématique de contreventement, ni une construction en madriers empilés."},
+            {q:"Qu'est-ce qu'un panneau \"CLT\" en construction bois ?", a:"Un panneau massif en bois lamellé-croisé (couches de lames collées perpendiculairement les unes aux autres), utilisé pour former murs et planchers.", d:["Un panneau de particules bon marché, principalement utilisé pour la fabrication d'emballages industriels.","Un panneau de fibres (MDF) à haute densité, utilisé essentiellement dans l'industrie de l'ameublement.","Un contreplaqué fin, réservé à la réalisation de coffrages temporaires sur les chantiers de construction."], w:"Le croisement des couches donne au CLT sa résistance dans les deux directions, contrairement à une planche massive qui ne travaille bien que dans le sens du fil ; ce n'est ni un panneau de particules, ni un MDF, ni un contreplaqué de coffrage."},
+            {q:"Dans le processus généralisé de fabrication en construction bois, quelles sont les 4 grandes étapes ?", a:"Débit, taillage, assemblage, montage.", d:["Sciage de la grume, séchage en cellule, rabotage des pièces, conditionnement avant expédition.","Conception du projet, prototypage de la structure, production en série, livraison au client.","Abattage de l'arbre, transport jusqu'au site, stockage en scierie, vente du produit fini."], w:"Retenir l'ordre : on débite et taille les pièces en atelier avant de les assembler, puis on monte sur le chantier ; les autres séquences décrivent soit l'amont scierie, soit un processus industriel générique, pas ce processus de fabrication en construction bois."},
+            {q:"Quelle est la fonction d'une \"corroyeuse\" en atelier bois ?", a:"Raboter des pièces à la section désirée sur 2 à 4 faces simultanément, à l'aide de plusieurs arbres d'usinage.", d:["Assembler les panneaux de contreventement directement sur une table de montage dédiée.","Scanner les grumes afin de détecter leurs défauts internes avant le premier sciage.","Sécher le bois massif à l'intérieur d'une cellule climatisée, après son débit en scierie."], w:"Elle met les faces d'une pièce à l'équerre et à la bonne section : une étape de précision avant tout usinage complémentaire, ni un poste d'assemblage, ni un scanner, ni un séchoir."},
+            {q:"Qu'est-ce qu'un \"slabber\" en tête de ligne de sciage ?", a:"Une machine qui traite les deux faces d'une grume en éliminant les dosses, puis broie ces dosses en copeaux.", d:["Une machine qui mesure et scanne la grume afin d'optimiser le plan de sciage avant toute découpe.","Une presse hydraulique qui assemble les fermettes industrielles destinées à la charpente.","Un séchoir à air chaud climatisé, utilisé pour sécher le bois une fois qu'il a été débité."], w:"Le slabber transforme un déchet de forme (la dosse) en sous-produit valorisable (copeaux), plutôt que de le laisser comme perte pure ; ce n'est ni un scanner de grume, ni une presse à fermettes, ni un séchoir."},
+            {q:"Qu'est-ce que la \"contremarque\" en gestion de production ?", a:"Une méthode où les articles sont fabriqués uniquement après réception d'une commande client ferme (par opposition à la production sur stock).", d:["Une méthode de contrôle qualité appliquée systématiquement aux pièces finies avant expédition.","Un type d'étiquetage réglementaire obligatoire sur tout meuble commercialisé en France.","Une remise commerciale accordée automatiquement aux clients passant de grosses commandes."], w:"C'est l'équivalent, côté vocabulaire métier, du \"flux tiré\" vu au chapitre procédés : produire seulement sur commande ferme, pas un contrôle qualité, un étiquetage réglementaire ou une remise commerciale."},
+            {q:"Que signifie travailler \"au défilé\" dans un atelier de production ?", a:"Les pièces passent successivement par différents postes de travail fixes, sans s'arrêter ou presque, donc sans zone de stockage intermédiaire entre les postes.", d:["Une méthode de production artisanale, pièce par pièce, sans passer par aucune ligne organisée.","Le fait de ne faire fonctionner l'atelier que la nuit, afin de limiter les coûts de l'énergie consommée.","Un mode de production réservé aux commandes destinées à être vendues à l'export."], w:"Travailler au défilé suppose une ligne cadencée en continu, à l'opposé d'un atelier où chaque machine traite ses pièces par lots séparés ; ce n'est ni de l'artisanat sans ligne, ni une question d'horaire de nuit, ni un mode réservé à l'export."},
+            {q:"Qu'est-ce que le \"nesting\" sur un centre d'usinage CNC ?", a:"Une technique d'usinage et de découpe optimisée de pièces imbriquées dans un panneau, pour maximiser le rendement matière.", d:["Une opération qui consiste à coller plusieurs panneaux entre eux pour obtenir une épaisseur donnée.","Un type de finition de surface appliqué au pistolet, à base de vernis ou de laque.","Le stockage automatisé des panneaux bruts, avant leur prise en charge par le centre d'usinage."], w:"Le nesting optimise le placement des pièces sur le panneau pour réduire les chutes, un levier direct d'écoconception par réduction de matière ; ce n'est ni du collage, ni une finition de surface, ni du stockage."},
+            {q:"Qu'est-ce que le \"Système 32\" dans l'industrie du meuble ?", a:"Un entraxe standardisé de perçages, qui permet une grande flexibilité dans l'ajout de quincailleries et facilite l'assemblage des meubles.", d:["Une norme de sécurité incendie applicable spécifiquement aux meubles destinés aux bureaux.","Un format de panneau de bois standardisé, harmonisé à l'échelle de l'Union européenne.","Un protocole de communication numérique utilisé pour synchroniser plusieurs machines CNC entre elles."], w:"La standardisation de l'entraxe permet d'utiliser des quincailleries de marques différentes sur le même meuble, sans redessiner chaque fois les perçages ; ce n'est ni une norme incendie, ni un format de panneau, ni un protocole numérique."},
+            {q:"Quelle est la différence entre postformage et softformage des chants de panneaux ?", a:"Le postformage plie à chaud un stratifié pour recouvrir le chant en continuité avec la surface ; le softformage utilise un film PVC souple ou un stratifié fin, permettant des profils plus complexes et un arrondi doux.", d:["Ce sont deux noms différents pour un seul et même procédé, selon le pays où il est pratiqué.","Le softformage ne peut s'appliquer qu'à des chants de pièces en bois massif, jamais à des panneaux.","Le postformage revient systématiquement moins cher à mettre en œuvre que le softformage, quel que soit le profil recherché."], w:"Softformage = matériaux plus souples donc formes plus complexes possibles ; postformage = procédé plus classique, limité à des profils plus simples ; la différence ne tient ni du pays, ni d'une limite au bois massif, ni d'un écart de coût systématique."},
+            {q:"Qu'est-ce qu'un \"caisson\" en ameublement ?", a:"Un élément de base de forme rectangulaire qui constitue la structure principale de nombreux meubles, en particulier les meubles de rangement.", d:["Un système d'aspiration des copeaux installé au-dessus des machines de l'atelier.","Un type d'emballage renforcé, utilisé pour protéger les meubles pendant leur transport.","La partie supérieure d'une table de montage, sur laquelle sont posées les pièces en cours d'assemblage."], w:"Le caisson est littéralement la \"boîte\" de base du meuble, sur laquelle viennent ensuite se fixer façades, tiroirs et quincailleries ; ce n'est ni un système d'aspiration, ni un emballage, ni une partie de table de montage."}
+          ]
+        },
+        {
+          id: "pratique",
+          title: "Infos pratiques : évaluation et équipe",
+          cards: [
+            {q:"Quelle est la pondération entre l'évaluation commune et l'évaluation CAO dans le bloc Écoconception ?", a:"L'évaluation commune (analyse fonctionnelle, conception, procédés, matériaux, droit de l'environnement, écoconception, ACV, fin de vie, aide à la décision) compte pour 70% ; l'évaluation CAO compte pour 30%.", d:["Les deux évaluations comptent chacune pour 50% de la note finale du bloc Écoconception.","C'est l'évaluation CAO qui compte pour 70%, l'évaluation commune ne pesant que pour 30%.","Seule l'évaluation commune est prise en compte, l'évaluation CAO n'étant qu'indicative sans impact sur la note."], w:"Avec 70% sur l'évaluation commune, c'est elle qui pèse le plus lourd dans la note finale du bloc : à prioriser en révision si le temps manque, contrairement à un équilibre 50/50, un rapport inversé ou une évaluation CAO purement indicative."},
+            {q:"Quel est le format de l'évaluation commune du bloc Écoconception ?", a:"Des questions de cours (QCM + questions ouvertes) et une étude de cas (QCM + questions ouvertes), plus un QCM e-learning sur 1 point (prise en main de Granta).", d:["Un oral individuel uniquement, sans aucune épreuve écrite.","Un rapport d'ACV complet, à réaliser et à rendre en groupe de plusieurs apprentis.","Un QCM seul, sans aucune question ouverte ni étude de cas associée."], w:"Le format mélange restitution de connaissances (questions de cours) et mise en situation (étude de cas), plus un petit QCM e-learning sur Granta : il faut savoir autant réciter qu'appliquer, pas seulement préparer un oral, un rapport de groupe ou un QCM isolé."},
+            {q:"Quelle compétence les apprentis doivent-ils valider en décembre dans le cadre de ce bloc ?", a:"Analyser les résultats d'une ACV simplifiée et identifier les étapes les plus impactantes (revue critique sur un périmètre restreint).", d:["Réaliser une ACV complète normée ISO 14044 sur un produit industriel, du périmètre à l'interprétation des résultats.","Déposer un brevet auprès de l'INPI pour une innovation technique développée pendant le bloc.","Concevoir et mettre en route une ligne de production automatisée pour un produit donné."], w:"C'est une compétence d'analyse critique, pas de calcul exhaustif : repérer les étapes les plus impactantes compte plus que maîtriser tous les détails méthodologiques d'une ACV normée complète, déposer un brevet ou concevoir une ligne de production."},
+            {q:"Qu'est-ce que \"Les Transitionneurs\" à l'ESB ?", a:"L'incubateur de projets responsables de l'école, qui accompagne les enseignements sur la soutenabilité (fresque du climat, atelier 2 tonnes, écoconception, chaîne de valeur responsable...) sur les 3 années de formation.", d:["Le nom commercial du logiciel d'analyse du cycle de vie utilisé pendant les cours d'écoconception.","Un club sportif de l'école, ouvert aux étudiants souhaitant pratiquer une activité physique en dehors des cours.","Le nom du bureau d'étude partenaire de l'école pour l'accueil des stagiaires et apprentis."], w:"Le nom à retenir si une question porte sur l'organisation de la soutenabilité à l'ESB plutôt que sur le contenu technique de l'écoconception ; ce n'est ni un logiciel, ni un club sportif, ni un bureau d'étude partenaire."}
+          ]
+        },
+        {
+          id: "cas",
+          title: "Étude de cas : outils d'évaluation (table rabattable)",
+          cards: [
+            {q:"Qu'est-ce qu'un diagramme FAST (Function Analysis System Technique) ?", a:"Un outil qui décompose une fonction de service en fonctions techniques puis en solutions techniques, en répondant à la question \"comment\" de la gauche vers la droite.", d:["Un planning de production affiché sous la forme d'un diagramme de Gantt, réparti par poste de travail.","Une méthode de calcul du coût de revient complet d'un produit, poste de dépense par poste de dépense.","Un indicateur de performance environnementale normé ISO, utilisé pour comparer deux produits entre eux."], w:"Le FAST part toujours du cahier des charges fonctionnel : chaque fonction de service du CdCF devient la racine d'un arbre de solutions techniques ; ce n'est ni un planning, ni un calcul de coût, ni un indicateur environnemental normé."},
+            {q:"Dans un AMDEC Produit, que signifient les notes G, F et D ?", a:"Gravité, Fréquence d'occurrence et Détection : trois notes combinées pour calculer la criticité d'une défaillance.", d:["Garantie, Fabrication et Durée de vie, trois critères utilisés pour qualifier commercialement un produit.","Gain, Faisabilité et Délai de mise sur le marché, trois critères utilisés en gestion de projet.","Génération, Finition et Distribution, trois étapes du cycle de vie commercial d'un produit."], w:"La criticité (souvent G×F×D) sert ensuite à hiérarchiser les défaillances : plus elle est élevée, plus l'action corrective est prioritaire ; ces trois lettres ne renvoient ni à des critères commerciaux, ni à de la gestion de projet, ni à des étapes de cycle de vie."},
+            {q:"Quel est l'objectif d'un diagramme Ishikawa (diagramme en arêtes de poisson) ?", a:"Identifier de façon structurée les causes possibles d'une défaillance ou d'un problème, souvent classées en familles (matière, méthode, main-d'œuvre, matériel, milieu).", d:["Calculer la criticité d'une défaillance à partir de sa seule fréquence d'occurrence observée.","Planifier dans le temps l'ensemble des tâches à réaliser au cours d'un projet de conception.","Comparer les forces et les faiblesses d'un produit par rapport à ceux de la concurrence."], w:"L'Ishikawa précède généralement l'AMDEC : il sert à lister les causes de défaillance par fonction, qui sont ensuite intégrées et notées dans le tableau AMDEC ; il ne calcule pas de criticité, ne planifie rien et ne compare pas à la concurrence."},
+            {q:"Que permet un diagramme de Pareto appliqué aux défaillances d'un AMDEC ?", a:"Identifier les défaillances prioritaires en classant les causes par fréquence décroissante et en traçant la courbe des fréquences cumulées (logique des 80/20).", d:["Calculer le prix de revient total du produit en intégrant l'ensemble des coûts de non-qualité.","Mesurer l'empreinte carbone du produit sur l'ensemble de son cycle de vie, de l'extraction à la fin de vie.","Déterminer la durée de vie moyenne du produit, à partir des retours constatés en service après-vente."], w:"Le principe des 80/20 suppose qu'une minorité de causes (zone A du Pareto) concentre la majorité des défaillances à traiter en priorité ; ce n'est ni un calcul de coût, ni une mesure d'empreinte carbone, ni une estimation de durée de vie."},
+            {q:"Dans une analyse SWOT appliquée à un concept de produit, que distingue-t-on ?", a:"Forces et Faiblesses (internes au concept) d'un côté, Opportunités et Menaces (externes, liées au contexte/marché) de l'autre.", d:["Les coûts fixes du projet d'un côté, ses coûts variables de l'autre, pour construire le plan de financement.","Les fonctions principales du cahier des charges d'un côté, ses fonctions contraintes de l'autre.","Les étapes amont du cycle de vie du produit d'un côté, ses étapes aval de l'autre."], w:"Classer un constat en \"interne\" ou \"externe\" est l'erreur la plus fréquente dans un SWOT : il faut se demander si le concept lui-même en est la cause, ou le contexte extérieur, pas opposer coûts fixes/variables, fonctions principales/contraintes, ou amont/aval du cycle de vie."},
+            {q:"Pour choisir le matériau d'une poutre en flexion (ex : plateau de table), quelle est la première étape de la méthode de l'indice de performance ?", a:"Définir la fonction, la contrainte (ex : flèche maximale admissible) et l'objectif (ex : minimiser la masse) avant toute formule.", d:["Consulter directement le prix au kilogramme de chacun des matériaux candidats à l'étude.","Choisir d'emblée le matériau le plus couramment utilisé dans l'industrie du meuble pour ce type de pièce.","Mesurer le module d'Young de tous les matériaux disponibles dans la base de données, avant toute autre considération."], w:"Sans fonction/contrainte/objectif clairement posés, on ne peut pas isoler la partie de l'équation qui ne dépend que du matériau, étape indispensable pour construire l'indice de performance ; consulter un prix, choisir par habitude ou mesurer en vrac ne remplace pas cette étape initiale."},
+            {q:"Dans la méthode de l'indice de performance d'une poutre en flexion, pourquoi sépare-t-on les termes liés au système (longueur, charge) des termes liés au matériau (E, ρ) ?", a:"Parce que seul le terme ne dépendant que du matériau constitue l'indice de performance M à maximiser, indépendamment de la géométrie particulière étudiée.", d:["Parce que les termes géométriques de l'équation ne possèdent, par nature, aucune unité physique définie.","Parce que la base de données Granta ne renseigne que les propriétés du matériau, jamais aucune donnée géométrique.","Parce que la longueur d'une poutre est, dans tous les cas pratiques, négligeable devant son épaisseur."], w:"Cette séparation permet de réutiliser le même indice de performance pour n'importe quelle poutre de ce type, quelle que soit sa géométrie exacte ; ce n'est ni une question d'unité physique, ni une limite de la base Granta, ni une hypothèse générale sur les proportions de la poutre."},
+            {q:"Sur un diagramme d'Ashby en échelle log-log (ex : module d'Young vs masse volumique), à quoi correspond la pente de la droite d'iso-performance ?", a:"À l'exposant de la masse volumique dans l'expression de l'indice de performance (ex : pente différente selon que l'indice s'écrit E/ρ ou E^(1/2)/ρ).", d:["Au prix moyen des matériaux qui sont représentés sur ce diagramme d'Ashby.","Au nombre total de matériaux candidats pris en compte dans l'étude.","À la température de service maximale que les matériaux étudiés peuvent supporter."], w:"Changer d'indice de performance (ex : barre résistante et légère vs poutre rigide et légère) change la pente de la droite, donc change aussi le classement des matériaux ; la pente n'a de lien direct ni avec le prix, ni avec le nombre de candidats, ni avec une température de service."},
+            {q:"Pourquoi faut-il calculer une incertitude (ΔM) sur un indice de performance, et pas seulement sa valeur moyenne ?", a:"Parce que deux matériaux proches en valeur moyenne peuvent avoir des plages d'incertitude qui se chevauchent, rendant la décision \"A est meilleur que B\" peu robuste.", d:["Parce que la norme ISO 14040 impose formellement ce calcul pour toute comparaison de matériaux.","Parce que l'incertitude ainsi calculée permet ensuite de déduire directement le prix du matériau.","Parce que, sans cette incertitude calculée, le module d'Young du matériau ne pourrait tout simplement pas être mesuré."], w:"C'est le même principe de robustesse de la décision que celui vu en ACV : une différence non significative entre deux options ne permet pas de conclure avec confiance ; ce n'est ni une exigence de l'ISO 14040, ni un moyen de calculer un prix, ni une condition de mesure du module d'Young."},
+            {q:"Dans un choix de matériau de poutre, que peut-il se passer quand on ajoute un critère de prix puis un critère environnemental (empreinte carbone) au critère technique initial ?", a:"Le matériau le plus performant peut changer à chaque ajout de critère : un matériau optimal techniquement n'est pas forcément le plus économique ni le plus écologique.", d:["Le classement des matériaux reste rigoureusement identique à chaque étape, seuls les chiffres affichés changent.","Le critère technique devient automatiquement secondaire dès qu'un critère économique est ajouté à l'étude.","L'ajout d'un nouveau critère n'est possible qu'après validation de la démarche par un organisme certificateur externe."], w:"C'est l'illustration concrète de l'approche multicritère de l'écoconception : un choix de matériau \"optimal\" dépend toujours des critères qu'on décide de croiser, et peut donc changer à chaque ajout, contrairement à un classement figé, une hiérarchie imposée entre critères, ou une validation externe obligatoire."},
+            {q:"Pour un isolant d'étuve utilisée par cycles (arrêt/relance), pourquoi cherche-t-on un compromis entre faible conductivité thermique (λ) et faible capacité thermique massique (Cp) ?", a:"Une faible conductivité limite les pertes par conduction en régime stationnaire, mais une épaisseur d'isolant trop importante augmente l'énergie emmagasinée à chaque montée en température : il existe une épaisseur optimale qui minimise l'énergie perdue sur un cycle.", d:["Parce que Cp et λ seraient, pour un même matériau donné, toujours directement proportionnels l'un à l'autre.","Parce qu'une réglementation technique imposerait un seuil minimal de capacité thermique massique pour ce type d'équipement.","Parce que seule la conductivité thermique λ influencerait, au final, le coût d'achat de l'isolant retenu."], w:"Bon exemple de compromis propre à un usage cyclique, différent d'un usage en continu où seule la conductivité compterait ; ce n'est ni une proportionnalité Cp/λ, ni une contrainte réglementaire, ni une question de coût d'achat."},
+            {q:"Dans un assemblage bi-matériaux soumis à des variations de température et d'humidité (ex : plancher bois-béton), d'où proviennent les contraintes à l'interface entre les deux matériaux ?", a:"Les deux matériaux se dilatent/contractent différemment (coefficients de dilatation thermique et hydrique différents) ; cette dilatation différentielle, empêchée par la liaison entre les matériaux, génère des contraintes normales puis une contrainte de cisaillement à l'interface.", d:["De la seule différence de masse volumique existant entre les deux matériaux mis en contact.","Du poids propre de la structure, qui génère ces contraintes indépendamment de toute variation de température.","D'un défaut de fabrication qui serait systématiquement présent au niveau de toute interface collée."], w:"Le bois a en plus une dilatation hydrique (liée à l'humidité) que le béton n'a pas : une source de contrainte supplémentaire propre aux assemblages bois en hygrométrie variable, qui ne vient ni d'un simple écart de masse volumique, ni du seul poids propre, ni d'un défaut de fabrication systématique."},
+            {q:"Dans l'application de la roue de Brezet à la table de réunion rabattable, à quoi sert le diagramme radar en fin d'exercice ?", a:"Comparer visuellement le profil environnemental du produit de référence (existant) et celui du nouveau concept proposé, axe par axe, pour visualiser les progrès réalisés.", d:["Calculer précisément le coût de fabrication prévisionnel du nouveau concept de table proposé.","Remplacer entièrement la réalisation d'une ACV complète et normée du produit étudié.","Mesurer uniquement la durée de vie attendue du nouveau produit, sans autre indicateur associé."], w:"C'est un outil de communication et de décision, pas une mesure quantitative précise : il reste qualitatif (+/-), ce qui fait justement la simplicité de la roue de Brezet, et ne calcule ni coût, ni ACV complète, ni durée de vie seule."},
+            {q:"Dans l'étude de cas de la table rabattable, pourquoi la phase \"divergente\" du brainstorming par axe de la roue de Brezet précède-t-elle toujours la phase \"convergente\" ?", a:"Pour éviter de filtrer trop tôt des idées sur des critères techniques ou économiques, et ne pas passer à côté d'idées environnementalement intéressantes jugées trop vite irréalistes.", d:["Parce que la phase convergente devrait, dans tous les cas, durer plus longtemps que la phase divergente qui la précède.","Parce qu'un texte réglementaire imposerait cet ordre précis pour toute démarche d'écoconception menée en entreprise.","Parce que la phase divergente, par construction, ne porterait jamais que sur les seuls aspects économiques du produit."], w:"C'est la règle vue dans le chapitre roue de Brezet : séparer \"générer\" et \"juger\" permet de ne pas tuer une idée originale trop tôt ; ce n'est ni une question de durée relative des deux phases, ni une obligation réglementaire, ni une limitation de la phase divergente aux aspects économiques."},
+            {q:"Pour le plateau de la table rabattable, une étude technique (indice de performance) désigne le contreplaqué comme le matériau le plus performant, mais l'étude environnementale (empreinte carbone par unité fonctionnelle) désigne le bois massif local comme le plus favorable. Que doit faire l'équipe de conception face à ce résultat, au regard de la démarche multicritère vue en écoconception ?", a:"Elle doit arbitrer explicitement entre les deux critères plutôt que choisir automatiquement l'un ou l'autre, en documentant le compromis retenu (ex : accepter une performance technique légèrement moindre pour un gain environnemental plus net, ou l'inverse) dans la fiche projet.", d:["Elle doit obligatoirement retenir le résultat de l'étude technique, le critère environnemental n'étant que secondaire dans une démarche d'écoconception.","Elle doit recommencer l'étude technique, puisqu'un résultat différent entre deux études sur le même produit signale nécessairement une erreur de calcul.","Elle doit retenir un matériau totalement différent des deux proposés, pour éviter d'avoir à choisir entre les deux études contradictoires."], w:"C'est la synthèse de ce qui a été vu sur le choix multicritère d'un matériau de poutre : deux critères légitimes peuvent désigner deux matériaux différents, et la démarche d'écoconception consiste justement à arbitrer consciemment entre eux, pas à ignorer l'un, à soupçonner une erreur, ou à fuir le choix."}
+          ]
+        }
+      ]
+    }
+  ];
+
+  // -- synthèses de cours (par matière puis par chapitre) ----------------
+  var COURS = {
+    eco: {
+      fond: [
+        {h:"L'essentiel", items:[
+          "<b>Écoconception</b> (ISO 14062) : intégrer les aspects environnementaux dès la conception, à fonction équivalente, pour réduire les impacts sur tout le cycle de vie.",
+          "<b>Éco-innovation</b> : va plus loin, peut remettre en cause la fonction ou le modèle économique (vendre un usage plutôt qu'un produit).",
+          "Approche <b>multicritère</b> (plusieurs indicateurs à la fois) et <b>multi-étapes</b> (tout le cycle de vie), pour éviter un simple déplacement de la pollution."
+        ]},
+        {h:"À ne pas confondre", items:[
+          "<b>Transfert de pollution</b> : améliorer un impact sur une étape/un critère en en aggravant un autre ailleurs.",
+          "Écoconception ≠ éco-innovation : la première optimise ce qui existe à fonction égale, la seconde peut changer le modèle."
+        ]}
+      ],
+      acv: [
+        {h:"L'essentiel", items:[
+          "<b>ISO 14040</b> (principes et cadre) et <b>ISO 14044</b> (exigences et lignes directrices) encadrent l'ACV.",
+          "<b>Unité fonctionnelle</b> : quantifie la fonction rendue, indispensable pour comparer équitablement deux produits.",
+          "<b>Évaluation simplifiée</b> (ESQCV, check-list, logiciel simplifié) : rapide, utilisée en amont, sans la rigueur d'une ACV normée.",
+          "Indicateurs multiples à croiser : changement climatique (GWP), épuisement des ressources, acidification, eutrophisation, écotoxicité."
+        ]}
+      ],
+      ecolabels: [
+        {h:"L'essentiel", items:[
+          "<b>Écolabel officiel de type I</b> : vérifié par un organisme tiers indépendant, multicritère, tout le cycle de vie — contrairement à une simple autodéclaration du fabricant.",
+          "Exemple de référence : la chaise <b>Aeron</b> (Herman Miller), démontable et recyclable sans sacrifier la performance d'usage."
+        ]}
+      ],
+      rep: [
+        {h:"L'essentiel", items:[
+          "<b>REP</b> = Responsabilité Élargie du Producteur, principe <b>pollueur-payeur</b>.",
+          "<b>Loi AGEC</b> (10 février 2020) : renforce les filières REP, tri 9 flux, Triman.",
+          "<b>Valdelia</b> : éco-organisme à but non lucratif, pour le mobilier (DEA) et le bâtiment (PMCB), financé par l'éco-contribution.",
+          "4 \"secondes vies\" (du moins au plus transformé) : occasion, réemploi/réparation, upcycling, recyclage matière.",
+          "~80% de recyclage/réutilisation sur la filière DEA (chiffres 2024)."
+        ]},
+        {h:"Bonnes pratiques fin de vie", items:[
+          "Bois et métaux : recyclables matière. <b>MDF et PVC</b> : \"perturbateurs du recyclage\".",
+          "Favoriser le mono-matériau, peu de visserie/matières mélangées, un mobilier démontable."
+        ]}
+      ],
+      brezet: [
+        {h:"L'essentiel", items:[
+          "<b>Roue de Brezet</b> : mise en place 1994 (Van Hemmel), diffusée 1997 (Brezet & Van Hemmel), guide \"Ecodesign\" UNEP.",
+          "<b>8 axes</b> sur 3 niveaux : composant (matériaux), structure (production/distribution/utilisation), système (durée de vie/fin de vie/nouveaux concepts \"@\").",
+          "Représentation en <b>diagramme radar</b> qualitative (+/-) : référence vs nouveau concept.",
+          "Démarche en 3 sessions : sensibilisation → créativité (phase <b>divergente</b> puis <b>convergente</b>) → synthèse (fiche projet : gains environnementaux, faisabilité technique et économique)."
+        ]}
+      ],
+      af: [
+        {h:"L'essentiel", items:[
+          "L'analyse fonctionnelle (NF X50-150 / ISO 16271) décrit le <b>besoin</b> en fonctions de service et contraintes, avant toute solution technique.",
+          "<b>Bête à cornes</b> : à qui/quoi rend-il service, sur qui/quoi agit-il, dans quel but.",
+          "<b>Fonction principale</b> (raison d'être) ≠ <b>fonction contrainte</b> (limite sans justifier l'existence) ≠ <b>fonction d'estime</b> (goût, déclenche l'achat).",
+          "<b>Diagramme pieuvre</b> : éléments du milieu extérieur (EME) reliés au produit par des fonctions.",
+          "Formuler une fonction : verbe à l'infinitif + complément, sans préjuger d'une solution ni utiliser de négation.",
+          "<b>Caractériser</b> une fonction = critère d'appréciation + niveau + flexibilité.",
+          "<b>CdCF</b> : tout cela réuni (norme NF EN 16271)."
+        ]}
+      ],
+      demarche: [
+        {h:"L'essentiel", items:[
+          "Concevoir = partir des <b>besoins</b> exprimés, des moyens existants et des possibilités technologiques.",
+          "<b>Innovation</b> (rare, produit nouveau) / <b>adaptation</b> (transfert à un nouveau contexte) / <b>modification</b> (la plus fréquente en entreprise).",
+          "<b>Besoin</b> (vital) ≠ <b>désir</b> (une solution envisagée parmi d'autres) — et <b>client</b> (achète) ≠ <b>utilisateur</b> (bénéficie).",
+          "6 étapes : identification des besoins → idéation → solutions techniques → sélection → modélisation → réalisation.",
+          "<b>Itération</b> : boucle volontaire d'amélioration, pas une répétition à l'identique."
+        ]},
+        {h:"Évaluation & protection", items:[
+          "3 types d'évaluation, du moins au plus coûteux : simulation numérique → expérimentation → prototypage.",
+          "<b>Brevet</b> : nouveauté + activité inventive + application industrielle, 20 ans maximum, déposé à l'INPI."
+        ]}
+      ],
+      multimat: [
+        {h:"L'essentiel", items:[
+          "<b>Alliage</b> (miscible, une seule phase, ex. acier) ≠ <b>composite</b> (non miscible, matrice + renfort, ex. contreplaqué, béton).",
+          "Dans un composite : le <b>renfort</b> porte la mécanique, la <b>matrice</b> répartit les efforts et protège.",
+          "<b>Composite biosourcé</b> (ADEME 2025) : critère sur le renfort (fibres naturelles) uniquement, la matrice peut être pétrosourcée.",
+          "Classement par <b>liaison chimique</b> (pas par origine) : le bois rejoint la famille des polymères.",
+          "<b>Indice de performance</b> : combine au moins deux propriétés matériau par rapport à un objectif (ex : bois très avantageux face à l'acier sur le rapport rigidité/poids)."
+        ]},
+        {h:"Pour le choix de matériau", items:[
+          "[matériau, procédé, forme] se contraignent mutuellement.",
+          "<b>FDES</b> (NF EN 15804, base INIES) : l'équivalent ACV normée pour les produits de construction.",
+          "Prudence avec les valeurs moyennes des matériaux biosourcés : forte variabilité naturelle (incertitude)."
+        ]}
+      ],
+      procedes: [
+        {h:"L'essentiel", items:[
+          "<b>Flux poussé</b> (prévision, grandes séries, marge faible) ≠ <b>flux tiré</b> (commande ferme, petites séries, marge forte).",
+          "<b>Machine-outil</b> (seule) ≠ <b>ligne de production</b> (plusieurs machines-outils synchronisées).",
+          "<b>MOPN</b> (opérateur nécessaire à l'usinage) ≠ <b>MOCN</b> (usinage sans opérateur) — réglage numérique dans les deux cas.",
+          "CNC <b>5 axes</b> : formes complexes en volume (bois massif) ; CNC <b>3 axes</b> : travail à plat (panneau)."
+        ]},
+        {h:"Impact environnemental", items:[
+          "Pour une machine-outil, la phase d'<b>utilisation</b> pèse largement plus lourd que sa fabrication, son transport ou sa fin de vie.",
+          "Le <b>mix énergétique</b> du pays d'implantation change fortement l'empreinte carbone d'une machine en service.",
+          "Toujours comparer deux machines à <b>unité fonctionnelle égale</b> (même nombre de pièces conformes produites).",
+          "En scierie (données FCBA) : sciage premier débit, séchage, aspiration et air comprimé sont les postes les plus énergivores."
+        ]}
+      ],
+      vocab: [
+        {h:"Du tronc à la pièce", items:[
+          "<b>Grume</b> (tronc brut) → <b>bille</b> (section de grume) → <b>avivé</b> (brut de sciage 4 faces) / <b>carrelet</b> (reconstitué, collé, raboté).",
+          "<b>Dosse</b> : première/dernière planche sciée (souvent un sous-produit).",
+          "<b>Rendement matière</b> = volume de produits finis / volume de grumes entrées."
+        ]},
+        {h:"Construction bois", items:[
+          "<b>Contreventement</b> : stabilité face aux forces horizontales (vent, séisme).",
+          "<b>Poteaux-poutres</b> (grandes sections, remplissage libre) ≠ <b>MOB</b> (petites sections, isolation intégrée).",
+          "<b>CLT</b> : bois lamellé-croisé, résistant dans les deux directions.",
+          "Processus générique : <b>débit → taillage → assemblage → montage</b>."
+        ]},
+        {h:"Atelier & ameublement", items:[
+          "<b>Corroyeuse</b> : rabote 2 à 4 faces à la bonne section. <b>Slabber</b> : élimine les dosses et les broie en copeaux.",
+          "<b>Contremarque</b> = fabrication sur commande ferme (équivalent du flux tiré). <b>Au défilé</b> = ligne continue, sans stock intermédiaire.",
+          "<b>Nesting</b> : optimise le placement des pièces dans un panneau pour réduire les chutes.",
+          "<b>Système 32</b> : entraxe standardisé de perçages pour les quincailleries de meuble.",
+          "<b>Postformage</b> (stratifié plié à chaud) ≠ <b>softformage</b> (film/stratifié souple, profils plus complexes).",
+          "<b>Caisson</b> : structure rectangulaire de base d'un meuble de rangement."
+        ]}
+      ],
+      pratique: [
+        {h:"L'essentiel à retenir", items:[
+          "Évaluation <b>commune 70%</b> / évaluation <b>CAO 30%</b> du bloc Écoconception.",
+          "Format de l'évaluation commune : questions de cours (QCM + ouvertes) + étude de cas (QCM + ouvertes) + QCM e-learning Granta (1 pt).",
+          "Compétence à valider en décembre : analyser les résultats d'une ACV simplifiée, identifier les étapes les plus impactantes.",
+          "<b>Les Transitionneurs</b> : l'incubateur de projets responsables de l'ESB (fresque du climat, atelier 2 tonnes...)."
+        ]}
+      ],
+      cas: [
+        {h:"Outils d'analyse et de décision", items:[
+          "<b>FAST</b> : décompose une fonction de service en fonctions techniques puis solutions techniques (\"comment\", de gauche à droite).",
+          "<b>AMDEC</b> : criticité = Gravité × Fréquence × Détection.",
+          "<b>Ishikawa</b> : classe les causes d'un problème par familles (matière, méthode, main-d'œuvre, matériel, milieu), précède l'AMDEC.",
+          "<b>Pareto</b> : classe les causes par fréquence décroissante, logique des 80/20.",
+          "<b>SWOT</b> : Forces/Faiblesses = internes au concept, Opportunités/Menaces = externes (contexte/marché)."
+        ]},
+        {h:"Choix de matériau (indice de performance)", items:[
+          "Toujours partir de la <b>fonction, la contrainte, l'objectif</b> avant toute formule.",
+          "Isoler le terme qui ne dépend que du <b>matériau</b> : c'est l'indice de performance M à maximiser (ex. poutre en flexion de section carrée libre : <b>M = √E / ρ</b>).",
+          "Sur un diagramme d'Ashby log-log, la <b>pente</b> de la droite d'iso-performance correspond à l'exposant de ρ dans l'expression de M.",
+          "Calculer l'<b>incertitude ΔM</b> : si les plages de deux matériaux se chevauchent, la décision \"A meilleur que B\" n'est pas robuste.",
+          "Ajouter un critère de prix puis un critère environnemental peut changer le matériau le plus performant (approche multicritère)."
+        ]},
+        {h:"Cas particuliers vus en TD", items:[
+          "Isolant en usage <b>cyclique</b> (étuve) : compromis entre faible conductivité (λ) et faible capacité thermique massique (Cp) → il existe une épaisseur optimale.",
+          "Assemblage <b>bi-matériaux</b> (ex. bois-béton) : des dilatations thermiques/hydriques différentes, empêchées par la liaison, créent des contraintes normales puis une contrainte de cisaillement à l'interface.",
+          "Roue de Brezet appliquée à un produit : le radar compare visuellement le produit de référence et le nouveau concept ; la phase divergente précède toujours la convergente pour ne pas tuer une idée trop tôt."
+        ]}
+      ]
+    }
+  };
+
+  // -- TD corrigés (par Claude, à vérifier avec le prof) -----------------
+  var TD_SHEETS = [
+    {
+      id:"td-materiau-table", eyebrow:"Multi-matériaux · cas d'étude", title:"Choix de matériau d'une table rabattable (indice de performance)",
+      note:"Les formules et la démarche ci-dessous sont sûres. Les valeurs numériques (E, ρ, incertitudes, prix, empreinte carbone) dépendent de ta base Granta : relève-les toi-même et applique la méthode décrite ici.",
+      items:[
+        {q:"Quelle est la fonction principale de l'élément structurel en flexion d'une table ?", a:["Reprendre les efforts de flexion engendrés par les charges posées sur le plateau, et les transmettre au piètement, sans flèche excessive ni rupture."]},
+        {q:"Au sens de l'analyse fonctionnelle, quelles seraient les contraintes associées à ce système structurel ? Ne pas confondre avec les contraintes mécaniques. En déduire les 2 limites à ne pas dépasser mécaniquement.", a:["Au sens AF, une contrainte est une limite imposée au concepteur (encombrement, poids transportable, budget, esthétique) — différente de la contrainte mécanique σ (force/surface).","Mécaniquement, les deux limites à ne pas dépasser sont : (1) la résistance (rupture ou plastification sous la contrainte maximale) et (2) la rigidité (flèche maximale admissible, au-delà de laquelle la table semble \"molle\" sans pour autant casser)."]},
+        {q:"Quelle contrainte tend à dominer le dimensionnement d'éléments en flexion ?", a:["La rigidité (la flèche) domine en général le dimensionnement des poutres élancées en flexion, bien avant la limite de résistance à la rupture : un plateau de table est presque toujours dimensionné pour rester rigide au toucher, pas pour éviter la casse."]},
+        {q:"Quel objectif va-t-on chercher à minimiser ou maximiser ?", a:["Minimiser la masse du plateau/piètement pour une rigidité donnée (flèche maximale fixée) : l'objectif classique de structure légère et rigide."]},
+        {q:"Tracer un graphique de la contrainte retenue en fonction de l'objectif à optimiser (Level 2). Quel matériau serait le plus adapté ? Quelles critiques ?", a:["C'est le graphique \"Level 2\" d'Ashby : module d'Young E (ordonnée) en fonction de la masse volumique ρ (abscisse), échelle log-log.","En lisant seulement l'axe E, le matériau \"le plus adapté\" serait celui au module le plus élevé (acier, céramique technique) — mais cette lecture ignore complètement le poids.","Critique : comparer un seul axe isolément ne dit rien sur le compromis rigidité/poids réellement recherché. Il faut un indice qui combine les deux grandeurs (voir la suite du TD)."]},
+        {q:"Réalisez le schéma statique de la table (efforts, longueurs, hypothèses de liaison).", a:["Modèle standard : poutre (le plateau ou une traverse) sur deux appuis simples (les deux montants du piètement), de portée L, chargée par un effort F appliqué au centre de la portée — cas isostatique classique.","Hypothèse de liaison : appui simple à chaque extrémité (réaction verticale uniquement, aucun moment transmis), cohérent avec une table posée sur deux pieds sans encastrement."]},
+        {q:"Exprimer la raideur apparente k en flexion, puis en fonction de E, L et l'aire A (section carrée pleine).", a:["Définition : k = F / v (charge totale divisée par la flèche maximale).","Pour une poutre bi-appuyée à charge centrée : v_max = F·L³ / (48·E·I), donc k = 48·E·I / L³.","Pour une section carrée pleine de côté t (A = t², I = t⁴/12 = A²/12) : k = 4·E·A² / L³."]},
+        {q:"Exprimer la masse m de la poutre en fonction des dimensions et de ρ.", a:["m = ρ · A · L (masse volumique × aire de section × longueur)."]},
+        {q:"En combinant les deux expressions, exprimez m en fonction de L, k, E, ρ. Isolez les termes liés au système et au matériau. Écrivez l'indice de performance M à maximiser.", a:["De k = 4EA²/L³ on tire A = (kL³/(4E))^(1/2). En reportant dans m = ρAL : m = (k/4)^(1/2) · L^(5/2) · (ρ/√E).","Le groupe (k/4)^(1/2)·L^(5/2) ne dépend que du système (raideur cible, portée) ; le groupe ρ/√E ne dépend que du matériau.","Minimiser m revient à minimiser ρ/√E, donc à maximiser l'indice de performance <b>M = √E / ρ</b>."]},
+        {q:"Tracer le graphique log(E) en fonction de log(ρ). Exprimez M en fonction des log. Quel coefficient directeur aura la droite d'iso-performance ?", a:["De M = √E/ρ on tire E = M²·ρ², donc log(E) = 2·log(ρ) + 2·log(M).","Sur un graphique log(E) vs log(ρ), les droites d'iso-performance (M constant) ont donc un coefficient directeur égal à <b>2</b>."]},
+        {q:"Excluez céramiques techniques, mousses et élastomères. Quel matériau est le plus performant d'après l'indice M = √E/ρ ?", a:["Ce sont les matériaux combinant rigidité élevée et faible densité qui dominent cet indice : composites fibrés hautes performances (CFRP), mais aussi le bois et ses dérivés structurels (lamellé-collé, contreplaqué), qui se classent souvent étonnamment bien — parfois devant l'acier et l'aluminium sur ce critère précis, grâce à leur très faible densité."], flag:"Classement exact à vérifier dans ta base Granta : il dépend des nuances précises disponibles dans ta session."},
+        {q:"Pour les deux matériaux les plus performants : relevez E, ΔE, ρ, Δρ ; calculez M ; calculez ΔM par propagation d'incertitudes ; que penser des résultats ?", a:["Méthode : M = √E/ρ. Par propagation d'incertitudes (dérivées partielles) : ΔM/M ≈ (1/2)·(ΔE/E) + (Δρ/ρ).","Si les plages [M−ΔM, M+ΔM] des deux matériaux se chevauchent, on ne peut pas affirmer avec certitude qu'un matériau est meilleur que l'autre sur ce seul critère : la décision doit s'appuyer sur un autre critère (prix, environnemental, disponibilité)."], flag:"Valeurs numériques (E, ΔE, ρ, Δρ) à relever dans Granta — je n'y ai pas accès."},
+        {q:"Ajoutez le prix économique : Cm en €/kg dans Granta. Quelle expression donne le prix volumique ? Quel matériau devient le plus performant ?", a:["Prix volumique Cv (€/m³) = Cm (€/kg) × ρ (kg/m³).","L'indice de performance économique devient M' = √E / (ρ·Cm), en reprenant le même raisonnement que pour M mais en incluant le coût matière total.","Point pédagogique : un matériau très performant techniquement mais cher (composite avancé) peut devenir moins intéressant une fois le prix intégré, alors qu'un matériau moins performant sur M mais nettement moins cher (bois massif, acier standard) peut redevenir compétitif sur M'."]},
+        {q:"Si l'on ajoute un critère environnemental (empreinte carbone de production), quel matériau devient le plus performant ?", a:["Même logique : M'' = √E / (ρ × empreinte carbone par kg).","Le bois (et les matériaux biosourcés en général) a une empreinte carbone de production structurellement bien plus faible que les métaux et la plupart des polymères techniques (moins d'énergie de transformation, carbone biogénique stocké) : c'est typiquement lui qui redevient le plus performant dès qu'on introduit ce critère.","C'est le message central du TD : un même matériau peut être \"optimal\" ou non selon les critères croisés — l'approche multicritère de l'écoconception."]}
+      ]
+    },
+    {
+      id:"td-isolant-etuve", eyebrow:"Multi-matériaux · cas d'étude", title:"Isolant thermique d'une étuve (usage cyclique)",
+      note:"Démarche et formules entièrement redémontrées ci-dessous à partir de l'énoncé ; aucune donnée externe nécessaire pour la partie modèle.",
+      items:[
+        {q:"Quelle fonction principale est assurée par l'isolant des parois d'une étuve ?", a:["Limiter le flux de chaleur à travers la paroi, pour maintenir la température de consigne à l'intérieur en consommant le moins d'énergie possible."]},
+        {q:"En termes de température admissible par l'isolant, quelle limite vous semble pertinente ?", a:["La température maximale de service de l'isolant doit rester supérieure à la température de consigne de l'étuve (séchage du bois), avec une marge de sécurité : l'isolant ne doit ni se dégrader, ni perdre ses propriétés, ni présenter de risque à cette température."]},
+        {q:"Une étuve fonctionne par cycles (montée en température puis maintien). Quel objectif peut-on chercher à minimiser ou maximiser ?", a:["Minimiser l'énergie totale perdue (ou consommée) sur un cycle complet, pas seulement en régime stationnaire — puisque l'étuve n'est pas utilisée en continu."]},
+        {q:"En régime stationnaire, quelle caractéristique du matériau définit l'énergie perdue Q1 par conduction ? Pour la minimiser, augmente-t-on ou réduit-on l'épaisseur ?", a:["La conductivité thermique λ (plus elle est faible, moins le flux de conduction est important).","Pour minimiser Q1, il faut AUGMENTER l'épaisseur e (la résistance thermique R = e/λ augmente avec e, donc le flux diminue)."]},
+        {q:"Lors de la montée en température, quelle caractéristique définit l'énergie Q2 emmagasinée par l'isolant ? Pour la minimiser, augmente-t-on ou réduit-on l'épaisseur ?", a:["La capacité thermique massique Cp, combinée à la masse de l'isolant (donc à ρ et au volume).","Pour minimiser Q2, il faut RÉDUIRE l'épaisseur e (moins de matière à chauffer = moins d'énergie stockée dans l'isolant)."]},
+        {q:"Tracez l'allure de Q1, Q2 et Q=Q1+Q2 en fonction de e. Identifiez Qmin, exprimez e à ce point, puis Qmin. Quel terme ne dépend que du matériau ?", a:["Q1(e) décroît en 1/e (hyperbole) ; Q2(e) croît linéairement avec e (droite) ; Q(e) = Q1+Q2 a donc une forme en \"U\" avec un minimum.","En écrivant Q1 = λ·ΔT·A·t/e et Q2 = ρ·Cp·ΔT·A·e, la dérivée dQ/de = 0 donne : <b>e* = √(λ·t / (ρ·Cp))</b> — on reconnaît la profondeur de pénétration thermique √(a·t), avec a = λ/(ρCp) la diffusivité thermique.","En reportant e* dans Q : <b>Qmin = 2·A·ΔT·√(λ·ρ·Cp·t)</b>.","Le terme qui ne dépend QUE du matériau est √(λ·ρ·Cp) : c'est l'effusivité thermique. C'est elle qu'il faut MINIMISER pour minimiser Qmin."]},
+        {q:"Sur un diagramme d'Ashby d'abscisse ρ et d'ordonnée 1/(λ·Cp), la droite d'iso-performance a un coefficient directeur de 1. Quels sont les isolants les plus performants ?", a:["Minimiser √(λρCp) revient à maximiser 1/(λρCp) = [1/(λCp)] / ρ, donc à chercher les points les plus en haut à gauche du graphique (ρ faible ET λ·Cp faible).","Ce sont typiquement les isolants cellulaires légers à faible capacité thermique : laines minérales (verre, roche) et mousses synthétiques basse densité (polystyrène expansé/extrudé), qui combinent très faible densité et λ·Cp faible."]},
+        {q:"Où se trouverait un isolant biosourcé dans ce graphique ? Pour le BioFib Trio (chanvre, coton, lin), que peut-on dire de son niveau de performance technique ?", a:["Les isolants biosourcés ont une densité comparable, voire légèrement supérieure (~30-55 kg/m³) aux laines minérales légères (~12-35 kg/m³), et surtout une capacité thermique massique bien plus élevée (~1500-2100 J/kg·K contre ~840-1030 J/kg·K pour laine minérale/PSE).","Sur ce graphique, le BioFib Trio se situerait donc plus bas et plus à droite que les meilleurs isolants minéraux/synthétiques légers : sur CE critère précis (usage cyclique), il est moins performant.","Ce résultat illustre un point important : une forte capacité thermique, souvent présentée comme un atout (inertie, confort d'été en usage continu), devient ici un désavantage car elle correspond à l'énergie perdue à chaque cycle de chauffe. Un matériau \"plus écologique\" n'est pas automatiquement le plus performant techniquement — tout dépend du critère et du type d'usage (cyclique vs continu)."], flag:"Valeurs de Cp/ρ données à titre indicatif (ordres de grandeur usuels) : remplace-les par la fiche technique exacte fournie en cours."}
+      ]
+    },
+    {
+      id:"td-bois-beton", eyebrow:"Multi-matériaux · cas d'étude", title:"Assemblage bi-matériaux bois-béton (plancher mixte)",
+      note:"Toutes les données numériques de ce TD étaient fournies dans l'énoncé : calcul fait intégralement à partir d'elles. Deux hypothèses restent à confirmer avec ton prof (voir les repères orange ci-dessous).",
+      items:[
+        {q:"Calculez ΔT et ΔMC entre l'hiver (10°C, 75% HR) et l'été (25°C, 65% HR).", a:["ΔT = 25 − 10 = 15°C (15 K).","Pour ΔMC, il faut convertir l'humidité relative en humidité d'équilibre du bois (MC) via la courbe d'équilibre hygroscopique : à titre indicatif, HR 65% ≈ 12% MC et HR 75% ≈ 15% MC, soit ΔMC ≈ 3 points."], flag:"ΔMC estimé à partir d'une courbe d'équilibre hygroscopique standard — vérifie avec l'abaque exact donné en cours, c'est la seule donnée que l'énoncé ne fournit pas directement."},
+        {q:"Calculez la variation de largeur de la dalle béton due à la dilatation thermique (béton seul).", a:["Δl_béton = l × α_béton × ΔT = 1000 mm × 1,05×10⁻⁵/K × 15K ≈ <b>0,16 mm</b>."]},
+        {q:"Calculez la variation de largeur de l'ensemble des planches due à la dilatation thermique du bois (bois seul).", a:["Avec le coefficient tangentiel (hypothèse par défaut) : Δl = l × αT × ΔT = 1000 × 4,25×10⁻⁵ × 15 ≈ <b>0,64 mm</b>.","Avec le coefficient radial : 1000 × 3,0×10⁻⁵ × 15 ≈ 0,45 mm."], flag:"Le choix tangentiel/radial dépend de l'orientation du fil dans les planches (débit sur dosse ou sur quartier) — confirme avec ce que ton prof a précisé sur la Figure 1."},
+        {q:"Calculez la variation de largeur de l'ensemble des planches due à la dilatation hydrique du bois.", a:["Avec le coefficient tangentiel : Δl = l × βT × ΔMC = 1000 × 0,0037 × 3 ≈ <b>11,1 mm</b>.","Avec le coefficient radial : 1000 × 0,0019 × 3 ≈ 5,7 mm.","Remarque : ce résultat confirme la règle générale vue en cours — le bois est bien plus sensible aux variations d'humidité qu'aux variations de température (ici, la dilatation hydrique domine très largement la dilatation thermique)."]},
+        {q:"À partir des deux résultats précédents, quelle est la variation de largeur due à la dilatation hygrothermique totale ?", a:["Tangentiel : 0,64 + 11,1 ≈ <b>11,7 mm</b>.","Radial : 0,45 + 5,7 ≈ <b>6,2 mm</b>."]},
+        {q:"Calculez la contrainte normale apparue dans le béton à cause de la dilatation thermique.", a:["En considérant le béton empêché de se dilater librement par sa liaison au bois (hypothèse de blocage total) : σ_béton = E_béton × α_béton × ΔT = 31475 × 1,05×10⁻⁵ × 15 ≈ <b>4,96 N/mm² (MPa)</b>, en compression."], flag:"Hypothèse retenue : blocage total (chaque matériau empêché de se dilater librement). Si ton prof a plutôt vu un modèle de compatibilité des déformations entre les deux matériaux (répartition selon leurs raideurs axiales E×A respectives), dis-le-moi et je refais le calcul avec cette méthode."},
+        {q:"Calculez la force résultante.", a:["A_béton = L × h_béton = 6000 × 60 = 360 000 mm².","F_béton = σ_béton × A_béton ≈ 4,96 × 360 000 ≈ <b>1 785 000 N (≈1785 kN)</b>."]},
+        {q:"Calculez la contrainte tangentielle que cela entraîne à l'interface bois/béton.", a:["τ = F_béton / (surface d'interface collée) = F_béton / (L × l) = 1 785 000 / (6000×1000) ≈ <b>0,30 N/mm² (MPa)</b>."]},
+        {q:"Calculez la contrainte normale apparue dans le bois à cause de la dilatation hygrothermique.", a:["σ_bois = E_bois × ε_bois,hygrothermique = 370 × 0,0117 ≈ <b>4,34 N/mm²</b> (coefficient tangentiel).","Avec le coefficient radial (ε≈0,0062) : σ_bois ≈ 2,28 N/mm²."]},
+        {q:"Calculez la force résultante.", a:["A_bois = L × h_bois = 6000 × 125 = 750 000 mm².","F_bois = σ_bois × A_bois ≈ 4,34 × 750 000 ≈ <b>3 257 000 N (≈3257 kN)</b> (tangentiel), ≈1707 kN (radial)."]},
+        {q:"Calculez la contrainte tangentielle que cela entraîne à l'interface bois/béton.", a:["τ = F_bois / (L × l) = 3 257 000 / 6 000 000 ≈ <b>0,54 N/mm²</b> (tangentiel), ≈0,28 N/mm² (radial).","Ordre de grandeur cohérent avec les valeurs de dimensionnement de connecteurs bois-béton réels (plage typique 0,1 à 1 MPa selon l'espacement des connecteurs)."]}
+      ]
+    },
+    {
+      id:"td-af-objets", eyebrow:"Analyse fonctionnelle", title:"Grille-pain, scie à format, canapé Lagunitas",
+      note:"Les éléments ci-dessous sont des propositions de correction type (besoin, bête à cornes, EME, fonctions, CdCF). Les diagrammes pieuvre sont décrits en texte plutôt que dessinés — à reporter sur un vrai diagramme pour la forme attendue.",
+      items:[
+        {q:"Grille-pain — besoin, bête à cornes, EME, fonctions, CdCF", a:[
+          "<b>Besoin :</b> permettre à l'utilisateur de griller du pain rapidement et de façon homogène, en toute sécurité, dans sa cuisine.",
+          "<b>Bête à cornes :</b> à qui rend-il service ? à l'utilisateur. sur quoi agit-il ? sur le pain. dans quel but ? le griller de façon homogène et maîtrisée.",
+          "<b>EME qualifiés :</b> utilisateur (geste quotidien, 1-2 fois/jour) ; pain (tranche 10-15mm, pain de mie à pain de campagne) ; réseau électrique (230V/50Hz) ; plan de travail (doit résister à la chaleur en surface) ; miettes/nettoyage ; sécurité enfants (norme NF, pas d'accès aux résistances).",
+          "<b>Fonctions :</b> FP1 griller le pain pour l'utilisateur ; FC1 s'alimenter sur le réseau électrique ; FC2 résister à la chaleur sans dégrader le plan de travail ; FC3 être sans danger (parties chaudes/électriques) ; FC4 être facile à nettoyer (miettes) ; FC5 s'intégrer visuellement à une cuisine.",
+          "<b>Diagramme pieuvre (description) :</b> le grille-pain est relié par FP1 à {utilisateur+pain}, par FC1 au réseau électrique, par FC2 au plan de travail, par FC3 à l'utilisateur (sécurité), par FC4 aux miettes, par FC5 à l'esthétique de la cuisine.",
+          "<b>CdCF (extrait) :</b> FP1 / temps et homogénéité de grillage / pain doré uniforme en 120s / ±20s — FC3 / température de surface accessible / <60°C / selon norme en vigueur."
+        ]},
+        {q:"Scie à format (Altendorf WA80) — besoin, bête à cornes, EME, fonctions, CdCF", a:[
+          "<b>Besoin :</b> permettre à un professionnel de débiter des panneaux/pièces bois avec précision et sécurité en atelier de production.",
+          "<b>Bête à cornes :</b> à qui ? à l'opérateur/l'atelier. sur quoi ? sur les panneaux à débiter. dans quel but ? les débiter aux dimensions voulues, avec précision et en sécurité.",
+          "<b>EME qualifiés :</b> opérateur formé (usage répété) ; panneaux/pièces bois (dimensions et épaisseurs variables) ; alimentation triphasée industrielle ; système d'aspiration (obligatoire : poussière = risque santé/explosion) ; normes machine (directive machines, protections de lame).",
+          "<b>Fonctions :</b> FP1 débiter les panneaux avec précision pour l'opérateur ; FC1 s'alimenter en énergie (électrique) ; FC2 évacuer les copeaux/poussières vers l'aspiration ; FC3 protéger l'opérateur (carters, arrêt d'urgence) ; FC4 s'intégrer à l'implantation de l'atelier.",
+          "<b>Diagramme pieuvre (description) :</b> relié par FP1 aux panneaux+opérateur, par FC1 au réseau électrique, par FC2 à l'aspiration, par FC3 à l'opérateur (sécurité), par FC4 à l'atelier (encombrement/flux).",
+          "<b>CdCF (extrait) :</b> FP1 / précision de coupe / ±0,1mm / ±0,05mm — FC3 / conformité norme machine / marquage CE, arrêt d'urgence normé / pas de flexibilité (sécurité)."
+        ]},
+        {q:"Canapé Lagunitas (Coalesse) — besoin, bête à cornes, EME, fonctions, CdCF", a:[
+          "<b>Besoin :</b> offrir aux utilisateurs d'espaces de travail collaboratifs un lieu d'assise confortable et modulable, favorisant les interactions, intégrant rangement et alimentation électrique en option.",
+          "<b>Bête à cornes :</b> à qui ? aux utilisateurs des espaces de travail. sur quoi ? sur le confort/la posture et l'organisation de l'espace. dans quel but ? créer un lieu de travail convivial et fonctionnel.",
+          "<b>EME qualifiés :</b> utilisateur(s) assis (usage prolongé, bureau) ; réseau électrique (bloc d'alimentation en option sous l'assise) ; sol ; normes mobilier professionnel (feu, stabilité) ; PEP (Profil Environnemental Produit, déclaration environnementale comparable à une FDES pour l'ameublement).",
+          "<b>Fonctions :</b> FP1 permettre à l'utilisateur de s'asseoir confortablement ; FC1 permettre la recharge d'appareils (option) ; FC2 offrir du rangement intégré ; FC3 permettre la modularité (1 à 3 places, écrans hauts/bas) ; FC4 respecter les normes de sécurité/environnementales du mobilier professionnel ; FC5 s'intégrer esthétiquement à l'espace de travail.",
+          "<b>CdCF (extrait) :</b> FP1 / confort d'assise / dossier articulé, assise ergonomique / - — FC4 / disponibilité d'un PEP conforme / oui / pas de flexibilité."
+        ]}
+      ]
+    },
+    {
+      id:"td-af-table", eyebrow:"Analyse fonctionnelle", title:"Cas complet : table mobile à plateaux rabattables",
+      note:"Cas d'étude complet, dans la continuité des objets précédents mais avec deux temporalités à distinguer (en utilisation / au repos) et un second utilisateur implicite à faire émerger.",
+      items:[
+        {q:"Définissez le besoin associé au système en utilisation.", a:["Permettre à un ou plusieurs utilisateurs de disposer d'une surface de travail/réunion stable en position d'usage, tout en pouvant replier et déplacer facilement la table pour réorganiser l'espace de la salle."]},
+        {q:"Représentez l'expression de ce besoin à l'aide d'une bête à cornes.", a:["À qui rend-il service ? Aux utilisateurs de la salle. Sur quoi agit-il ? Sur la possibilité de disposer d'une surface plane de travail. Dans quel but ? Offrir une surface stable et rapidement reconfigurable selon les besoins de la salle."]},
+        {q:"Quel autre utilisateur n'est pas explicité ? Définissez son besoin.", a:["La personne qui range/déplace la table (agent d'entretien, responsable de salle), distincte de celui qui l'utilise assis.","Son besoin : pouvoir rabattre, déplacer et ranger la table facilement et sans risque (roulettes, prise en main, poids maîtrisé, mécanisme de pliage sûr), pour libérer l'espace de la salle entre deux usages."]},
+        {q:"Recensez les EME du système (en utilisation / au repos). Qualifiez-les.", a:["En UTILISATION : utilisateurs assis (objets posés), sol de la salle (stabilité), réseau électrique éventuel (prise intégrée), autres tables/mobilier (assemblage en ligne), normes mobilier professionnel.","En REPOS/RANGEMENT : personnel de rangement, zone de stockage (encombrement replié), sol (roulement), autres tables stockées (empilage).","Qualification (exemples) : charge posée jusqu'à X kg/plateau ; sol plat intérieur classique de salle de réunion ; zone de stockage de largeur limitée une fois repliée ; normes de stabilité anti-basculement et charge admissible."]},
+        {q:"Recensez les fonctions du système (en utilisation / au repos). Quelle(s) fonction(s) rajouter en dehors de ces deux temporalités ? Diagramme pieuvre.", a:["EN UTILISATION : FP1 permettre de poser/travailler sur une surface stable ; FC1 résister aux charges sans basculer ; FC2 s'assembler avec d'autres tables si besoin.","AU REPOS/RANGEMENT : FP2 permettre à la personne en charge du rangement de replier et déplacer la table facilement ; FC3 occuper un minimum d'espace une fois repliée ; FC4 rouler sans endommager le sol.","EN DEHORS de ces deux temporalités : FC5 résister dans le temps aux cycles répétés de pliage/déplacement (fonction de durabilité, liée à la durée de vie du produit et non à un instant d'usage précis) — ainsi qu'une exigence de sécurité permanente (ne jamais permettre un pincement/basculement, quel que soit l'état de la table).","<b>Diagramme pieuvre (description) :</b> la table est reliée par FP1 aux utilisateurs+objets posés, par FC1 au sol (en utilisation), par FC2 aux autres tables, par FP2 à la personne en charge du rangement, par FC3 à la zone de stockage, par FC4 au sol (en déplacement), et par FC5 au facteur temps/usage répété — cette dernière fonction est transversale, reliée au produit lui-même plutôt qu'à un EME ponctuel."]},
+        {q:"Remplissez le cahier des charges fonctionnel en déterminant le critère d'appréciation de chaque fonction.", a:["FP1 / charge admissible sur le plateau / ex. 80 kg répartis / ±10 kg","FC1 / stabilité anti-basculement / norme mobilier professionnel en vigueur / pas de flexibilité (sécurité)","FP2 / effort de pliage par une personne seule / <150 N / ±20 N","FC3 / encombrement replié / épaisseur minimisée, empilable / selon largeur de stockage disponible","FC4 / facilité de roulement / roulettes adaptées au revêtement de sol / -","FC5 / durée de vie du mécanisme / ex. 5000 cycles de pliage garantis / ±500 cycles"]}
+      ]
+    },
+    {
+      id:"td-brezet-table", eyebrow:"Roue de Brezet", title:"Pistes d'amélioration : table de réunion rabattable",
+      note:"La partie \"idéation\" (brainstorming par axe) attend surtout une démarche correcte — savoir utiliser les 8 axes, distinguer phase divergente/convergente — plus qu'un contenu figé. Compare mes pistes à celles produites par ton groupe en séance.",
+      items:[
+        {q:"Quelle est la fonction principale de la table de réunion rabattable ?", a:["Offrir une surface de réunion stable, rapidement repliable et déplaçable, pour optimiser l'usage de l'espace d'une salle de réunion."]},
+        {q:"Identifiez les fonctions secondaires.", a:["Être stable et sûre en usage et en transport ; être maniable par une seule personne (pliage, roulettes) ; occuper un minimum d'espace repliée ; résister dans le temps aux cycles de pliage ; respecter les normes de sécurité du mobilier professionnel ; s'intégrer esthétiquement à une salle de réunion."]},
+        {q:"Identifiez les principaux composants et les matériaux qui pourraient être utilisés.", a:[
+          "Plateau / panneau de particules ou MDF mélaminé (ou panneau alvéolaire léger) / offrir la surface de travail plane",
+          "Piètement / acier (tube ou profilé) / supporter le plateau et transmettre les charges au sol",
+          "Traverses et renforts / acier ou aluminium / rigidifier l'ensemble, limiter la flèche du plateau",
+          "Charnières (mécanisme rabattable) / acier ou zamak / permettre le pliage du plateau sur le piètement",
+          "Système de verrouillage / acier (ressort, loquet) / bloquer la table dépliée ou repliée en sécurité",
+          "Roulettes éventuelles / polyamide/caoutchouc + axe acier / permettre le déplacement sans endommager le sol",
+          "Fixations (vis, inserts) / acier zingué / assembler durablement les composants"
+        ]},
+        {q:"Quelles sont les principales contraintes auxquelles doit répondre le produit ?", a:["Stabilité/sécurité (anti-basculement, verrouillage fiable) ; résistance mécanique (charge admissible, cycles de pliage) ; normes mobilier professionnel (feu, stabilité) ; encombrement au stockage ; manutention par une seule personne ; coût compatible avec un marché professionnel ; esthétique adaptée à un usage tertiaire."]},
+        {q:"Identifiez les principales étapes du cycle de vie. Pour chacune, ressources consommées et impacts environnementaux potentiels.", a:[
+          "Matières premières : minerai (acier), bois/panneaux (sylviculture) — épuisement de ressources, énergie d'extraction/transformation.",
+          "Fabrication : énergie électrique (découpe, soudure, usinage), consommables (colles, vernis) — émissions GES liées au mix énergétique, COV des finitions, chutes de production.",
+          "Transport : carburant — émissions GES, dépend fortement des distances fournisseur/usine/client.",
+          "Utilisation : énergie directe quasi nulle (sauf option prise électrique) — impact très faible comparé aux autres étapes.",
+          "Fin de vie : démontage, tri des matériaux (acier recyclable à l'infini ; panneaux mélaminé/MDF moins bien valorisés à cause des colles et de la mélamine, \"perturbateurs du recyclage\" comme vu en cours)."
+        ]},
+        {q:"Quelles étapes du cycle de vie mériteraient d'être étudiées en priorité ? Pourquoi ?", a:["Matières premières et fabrication en priorité : elles concentrent souvent la majorité de l'empreinte carbone d'un meuble professionnel, en particulier la part en acier (matériau à forte énergie grise).","Puis la fin de vie, à cause du problème identifié des panneaux mélaminés/MDF.","La phase d'utilisation est généralement négligeable ici, contrairement par exemple à une machine-outil où c'est l'inverse."]},
+        {q:"Positionnez les résultats de la première évaluation du produit de référence sur le diagramme radar.", a:["Sans ACV détaillée disponible pour ton produit réel, un positionnement qualitatif plausible pour un produit \"standard\" (plateau mélaminé + piètement acier, non pensé pour l'écoconception) : plutôt faible (−) sur \"sélection de matériaux à faible impact\" et sur \"optimisation du système de fin de vie\" ; neutre à correct sur \"réduction des impacts en phase d'utilisation\" (déjà très faible nativement) ; moyen sur \"optimisation de la durée de vie initiale\" selon la qualité des charnières/verrouillage."], flag:"Positionnement qualitatif indicatif — à recaler sur le profil réel évalué avec ton groupe en séance."},
+        {q:"Brain-writing par axe : propositions d'idées pour chacun des 8 axes.", a:[
+          "Axe 0 (nouveaux concepts) : repenser le produit comme un service de location de mobilier modulable ; mutualiser des plateaux entre plusieurs salles.",
+          "Axe 1 (matériaux à faible impact) : panneau à base de bois certifié/biosourcé à faible émission de COV, ou acier à contenu recyclé garanti.",
+          "Axe 2 (réduction de matière) : plateau alvéolaire/nid d'abeille, piètement en profilés optimisés plutôt que pleins.",
+          "Axe 3 (production) : réduire les chutes de découpe (nesting), limiter les étapes de finition consommatrices d'énergie/solvants.",
+          "Axe 4 (logistique) : plateau et piètement démontables/empilables pour réduire le volume transporté.",
+          "Axe 5 (phase d'utilisation) : peu de marge ici (usage déjà très sobre), sauf à retirer l'option électrique si peu utilisée.",
+          "Axe 6 (durée de vie) : charnières/verrouillage plus fiables et remplaçables plutôt que produit jeté, garantie allongée.",
+          "Axe 7 (fin de vie) : produit mono-matériau ou facilement démontable (vis plutôt que colle), éviter le mélange mélaminé+acier difficile à séparer, privilégier les matériaux bien valorisés par Valdelia (bois hors MDF, métaux)."
+        ]}
+      ]
+    }
+  ];
+
+  // -- ids + progress --------------------------------------------------
+  SUBJECTS.forEach(function(s){
+    s.chapters.forEach(function(c){
+      c.cards.forEach(function(card, i){ card.id = s.id + "__" + c.id + "__" + i; });
+    });
+  });
+
+  var PROGRESS_KEY = "revision_progress_v1";
+  function loadProgress(){
+    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveProgress(p){
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch(e){}
+  }
+  function markCard(cardId, known){
+    var p = loadProgress();
+    p[cardId] = known;
+    saveProgress(p);
+  }
+  function chapterMastery(chapter){
+    var p = loadProgress();
+    var total = chapter.cards.length, known = 0;
+    chapter.cards.forEach(function(c){ if (p[c.id]) known++; });
+    return total ? Math.round(known / total * 100) : 0;
+  }
+  function globalStats(){
+    var p = loadProgress();
+    var total = 0, known = 0;
+    SUBJECTS.forEach(function(s){
+      s.chapters.forEach(function(c){
+        c.cards.forEach(function(card){ total++; if (p[card.id]) known++; });
+      });
+    });
+    return {known: known, total: total, pct: total ? Math.round(known / total * 100) : 0};
+  }
+
+  // -- streak (jours consécutifs d'ouverture du carnet) ------------------
+  var STREAK_KEY = "revision_streak_v1";
+  function dateKey(d){
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function updateStreak(){
+    var s;
+    try { s = JSON.parse(localStorage.getItem(STREAK_KEY)) || {count: 0, last: null}; }
+    catch(e){ s = {count: 0, last: null}; }
+    var today = dateKey(new Date());
+    if (s.last === today) return s.count;
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    s.count = (s.last === dateKey(yesterday)) ? s.count + 1 : 1;
+    s.last = today;
+    try { localStorage.setItem(STREAK_KEY, JSON.stringify(s)); } catch(e){}
+    return s.count;
+  }
+
+  function motivationLine(pct){
+    if (pct <= 0) return "C'est le moment de commencer.";
+    if (pct < 30) return "Tu démarres, continue comme ça.";
+    if (pct < 60) return "Bon rythme, garde le cap.";
+    if (pct < 90) return "Solide. Encore un effort avant l'examen.";
+    return "Quasiment tout maîtrisé, bravo.";
+  }
+
+  // -- helpers -----------------------------------------------------------
+  function el(html){
+    var t = document.createElement("template");
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function esc(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function shuffle(arr){
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  function findSubject(id){ return SUBJECTS.filter(function(s){return s.id===id;})[0]; }
+
+  // -- routing (home / subject-<id> only; sessions are in-page state) ---
+  var app = document.getElementById("app");
+  var session = null; // transient, not routed
+
+  function go(hash){ location.hash = hash; }
+  window.addEventListener("hashchange", render);
+
+  function currentRoute(){
+    var h = (location.hash || "").replace(/^#/, "");
+    var parts = h.split("/");
+    if (parts[0].indexOf("subject-") === 0){
+      var sid = parts[0].slice("subject-".length);
+      if (findSubject(sid)){
+        if (parts[1] === "cours"){
+          if (parts[2]) return {view:"cours-chapter", id:sid, chapter:parts[2]};
+          return {view:"cours", id:sid};
+        }
+        if (parts[1] === "td"){
+          if (parts[2]) return {view:"td-sheet", id:sid, td:parts[2]};
+          return {view:"td", id:sid};
+        }
+        return {view:"subject", id:sid};
+      }
+    }
+    return {view:"home"};
+  }
+
+  function render(){
+    clearExamTimer();
+    session = null;
+    var route = currentRoute();
+    app.innerHTML = "";
+    app.appendChild(topbar(route));
+    if (route.view === "subject") app.appendChild(subjectView(findSubject(route.id)));
+    else if (route.view === "cours") app.appendChild(coursView(findSubject(route.id)));
+    else if (route.view === "cours-chapter") app.appendChild(coursChapterView(findSubject(route.id), route.chapter));
+    else if (route.view === "td") app.appendChild(tdView(findSubject(route.id)));
+    else if (route.view === "td-sheet") app.appendChild(tdSheetView(findSubject(route.id), route.td));
+    else app.appendChild(homeView());
+  }
+
+  function topbar(route){
+    var inSubject = route.view === "subject" || route.view === "cours" || route.view === "cours-chapter" || route.view === "td" || route.view === "td-sheet";
+    var crumb = inSubject
+      ? '<a class="crumb" data-go="home">Matières</a><span style="color:var(--fg-muted)"> / </span><span>' + esc(findSubject(route.id).name) + "</span>"
+      : '<span>&nbsp;</span>';
+    var bar = el(
+      '<div class="topbar">' +
+        '<div class="brand">' + sealIcon(42) +
+          '<div><span class="kicker mono">ESB · Ingénieur bois</span><h1>Carnet de révisions</h1></div>' +
+        '</div>' +
+        '<div>' + crumb + '</div>' +
+      '</div>'
+    );
+    bar.querySelectorAll("[data-go]").forEach(function(n){
+      n.addEventListener("click", function(){ go(n.getAttribute("data-go")); });
+    });
+    var tabsWrap = el('<div></div>');
+    if (inSubject){
+      var sid = route.id;
+      var tabs = el(
+        '<div class="section-tabs">' +
+          '<a data-go="subject-' + sid + '" class="section-tab' + (route.view === "subject" ? " active" : "") + '">Réviser</a>' +
+          '<a data-go="subject-' + sid + '/cours" class="section-tab tab-cours' + (route.view.indexOf("cours") === 0 ? " active" : "") + '">Cours</a>' +
+          '<a data-go="subject-' + sid + '/td" class="section-tab tab-td' + (route.view.indexOf("td") === 0 ? " active" : "") + '">TD</a>' +
+        "</div>"
+      );
+      tabs.querySelectorAll("[data-go]").forEach(function(n){
+        n.addEventListener("click", function(){ go(n.getAttribute("data-go")); });
+      });
+      tabsWrap.appendChild(tabs);
+    }
+    var frag = el("<div></div>");
+    frag.appendChild(bar);
+    frag.appendChild(tabsWrap);
+    return frag;
+  }
+
+  function leafIcon(){
+    return '<svg width="22" height="22" viewBox="0 0 28 28" fill="none">' +
+      '<path d="M5 22C5 10 15 5 23 5C23 14 18 23 6 23C5.4 23 5 22.6 5 22Z" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M23 5C18 9 12 14 6 22" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round"/>' +
+      "</svg>";
+  }
+
+  function sealIcon(size){
+    size = size || 44;
+    return '<div class="seal" style="width:' + size + 'px;height:' + size + 'px">' + leafIcon() + "</div>";
+  }
+
+  function clockIcon(){
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none">' +
+      '<circle cx="12" cy="12" r="9" stroke="var(--accent-2)" stroke-width="1.6"/>' +
+      '<path d="M12 7v5l3.5 2" stroke="var(--accent-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      "</svg>";
+  }
+
+  function streakIcon(){
+    return '<div class="seal" style="width:40px;height:40px;flex:none">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none">' +
+        '<path d="M12 3C12 7 8 9 8 13.5C8 16.5 9.8 19 12 19C14.2 19 16 16.5 16 13.5C16 12 15.2 11 15.2 11C15.2 13 14 13.5 14 13.5C14.5 10 12 9 12 3Z" stroke="var(--accent-2)" stroke-width="1.5" stroke-linejoin="round"/>' +
+      "</svg>" +
+    "</div>";
+  }
+
+  function homeView(){
+    var wrap = el('<div></div>');
+    var streak = updateStreak();
+    var stats = globalStats();
+    var bilan = el(
+      '<div class="card bilan">' +
+        '<div class="bilan-row">' +
+          '<div class="bilan-stat">' + streakIcon() + '<div><span class="bilan-num mono">' + streak + '</span><span class="bilan-label">' + (streak > 1 ? "jours de suite" : "premier jour") + '</span></div></div>' +
+          '<div class="bilan-stat"><div><span class="bilan-num mono">' + stats.pct + '%</span><span class="bilan-label">' + stats.known + " / " + stats.total + ' cartes maîtrisées</span></div></div>' +
+        '</div>' +
+        '<div class="bar"><i style="width:' + stats.pct + '%"></i></div>' +
+        '<div class="bilan-msg">' + esc(motivationLine(stats.pct)) + '</div>' +
+      '</div>'
+    );
+    wrap.appendChild(bilan);
+    var grid = el('<div class="subjects"></div>');
+    SUBJECTS.forEach(function(s){
+      var totalCards = s.chapters.reduce(function(n,c){return n+c.cards.length;},0);
+      var knownCards = 0;
+      var p = loadProgress();
+      s.chapters.forEach(function(c){ c.cards.forEach(function(card){ if (p[card.id]) knownCards++; }); });
+      var subjectPct = totalCards ? Math.round(knownCards / totalCards * 100) : 0;
+      var card = el(
+        '<div class="card subject-card" tabindex="0" role="button" data-go="subject-' + s.id + '">' +
+          sealIcon(46) +
+          "<h3>" + esc(s.name) + "</h3>" +
+          '<div class="meta mono">' + s.chapters.length + " chapitres · " + totalCards + " cartes</div>" +
+          '<div class="bar" style="margin:0"><i style="width:' + subjectPct + '%"></i></div>' +
+        "</div>"
+      );
+      card.addEventListener("click", function(){ go("subject-" + s.id); });
+      card.addEventListener("keydown", function(e){ if (e.key === "Enter") go("subject-" + s.id); });
+      grid.appendChild(card);
+    });
+    grid.appendChild(el('<div class="subject-add">+ d\'autres matières arriveront ici au fil des cours</div>'));
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  function subjectView(subject){
+    var wrap = el("<div></div>");
+    var list = el('<div class="chapters"></div>');
+    subject.chapters.forEach(function(ch, chIdx){
+      var mastery = chapterMastery(ch);
+      var num = (chIdx + 1 < 10 ? "0" : "") + (chIdx + 1);
+      var row = el(
+        '<div class="chapter-row">' +
+          '<div class="chapter-head">' +
+            '<div class="chapter-head-left"><span class="stamp mono">' + num + '</span><h3>' + esc(ch.title) + "</h3></div>" +
+            '<span class="count mono">' + ch.cards.length + " cartes · " + mastery + "% maîtrisé</span>" +
+          "</div>" +
+          '<div class="bar"><i style="width:' + mastery + '%"></i></div>' +
+          '<div class="mode-row">' +
+            '<button class="primary" data-mode="flashcards">Flashcards</button>' +
+            '<button data-mode="qcm">QCM</button>' +
+            '<button data-mode="written">Question écrite</button>' +
+          "</div>" +
+        "</div>"
+      );
+      row.querySelectorAll("[data-mode]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          startSession(subject, ch, btn.getAttribute("data-mode"));
+        });
+      });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    var examCard = el(
+      '<div class="card exam-card">' +
+        "<h3>" + clockIcon() + "Examen blanc</h3>" +
+        "<p>" + EXAM_LENGTH + " questions QCM tirées au hasard dans toutes les matières, en " + Math.round(EXAM_DURATION/60) + " minutes chrono.</p>" +
+        '<div><button class="primary" data-start-exam>Lancer l\'examen blanc</button></div>' +
+      "</div>"
+    );
+    examCard.querySelector("[data-start-exam]").addEventListener("click", function(){ startExam(subject); });
+    wrap.appendChild(examCard);
+    wrap.appendChild(el(
+      '<div class="footer-note">' +
+        "<span>La progression est enregistrée uniquement dans ce navigateur.</span>" +
+        '<button class="ghost" id="reset-btn" style="font-size:12px;padding:5px 10px">Réinitialiser la progression</button>' +
+      "</div>"
+    ));
+    var resetBtn = wrap.querySelector("#reset-btn");
+    var confirming = false;
+    resetBtn.addEventListener("click", function(){
+      if (!confirming){
+        confirming = true;
+        resetBtn.textContent = "Confirmer la réinitialisation ?";
+        resetBtn.classList.add("danger-ghost");
+        setTimeout(function(){
+          if (confirming){ confirming = false; resetBtn.textContent = "Réinitialiser la progression"; resetBtn.classList.remove("danger-ghost"); }
+        }, 4000);
+        return;
+      }
+      var p = loadProgress();
+      subject.chapters.forEach(function(c){ c.cards.forEach(function(card){ delete p[card.id]; }); });
+      saveProgress(p);
+      render();
+    });
+    return wrap;
+  }
+
+  // -- cours & TD --------------------------------------------------------
+  function findChapter(subject, chId){ return subject.chapters.filter(function(c){ return c.id === chId; })[0]; }
+  function findTD(tdId){ return TD_SHEETS.filter(function(t){ return t.id === tdId; })[0]; }
+
+  function chevronIcon(){
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function coursView(subject){
+    var wrap = el("<div></div>");
+    var cours = COURS[subject.id] || {};
+    var list = el('<div class="link-rows"></div>');
+    subject.chapters.forEach(function(ch, chIdx){
+      if (!cours[ch.id]) return;
+      var num = (chIdx + 1 < 10 ? "0" : "") + (chIdx + 1);
+      var row = el(
+        '<div class="link-row cours" tabindex="0" role="button">' +
+          "<div><span class=\"tag-num\">Chapitre " + num + "</span><h3>" + esc(ch.title) + "</h3></div>" +
+          '<span class="chevron">' + chevronIcon() + "</span>" +
+        "</div>"
+      );
+      row.addEventListener("click", function(){ go("subject-" + subject.id + "/cours/" + ch.id); });
+      row.addEventListener("keydown", function(e){ if (e.key === "Enter") go("subject-" + subject.id + "/cours/" + ch.id); });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function coursChapterView(subject, chapterId){
+    var wrap = el("<div></div>");
+    var ch = findChapter(subject, chapterId);
+    var blocks = (COURS[subject.id] || {})[chapterId] || [];
+    var back = el('<a class="detail-back">‹ Retour au cours</a>');
+    back.addEventListener("click", function(){ go("subject-" + subject.id + "/cours"); });
+    wrap.appendChild(back);
+    wrap.appendChild(el(
+      '<div class="detail-head cours"><span class="eyebrow mono">Cours · synthèse</span><h2>' + esc(ch.title) + "</h2></div>"
+    ));
+    blocks.forEach(function(block){
+      var b = el('<div class="cours-block"><h4>' + esc(block.h) + "</h4><ul></ul></div>");
+      var ul = b.querySelector("ul");
+      block.items.forEach(function(item){
+        var li = document.createElement("li");
+        li.innerHTML = item;
+        ul.appendChild(li);
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function tdView(subject){
+    var wrap = el("<div></div>");
+    wrap.appendChild(el('<div class="td-note">Corrections rédigées par Claude à partir des énoncés de TD. Les méthodes et formules sont fiables ; compare les résultats avec ce que ton prof a montré en séance, surtout là où un repère orange signale une hypothèse.</div>'));
+    var list = el('<div class="link-rows"></div>');
+    TD_SHEETS.forEach(function(td){
+      var row = el(
+        '<div class="link-row td" tabindex="0" role="button">' +
+          "<div><span class=\"tag-num\">" + esc(td.eyebrow) + "</span><h3>" + esc(td.title) + "</h3>" + '<div class="meta mono">' + td.items.length + " questions</div></div>" +
+          '<span class="chevron">' + chevronIcon() + "</span>" +
+        "</div>"
+      );
+      row.addEventListener("click", function(){ go("subject-" + subject.id + "/td/" + td.id); });
+      row.addEventListener("keydown", function(e){ if (e.key === "Enter") go("subject-" + subject.id + "/td/" + td.id); });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function tdSheetView(subject, tdId){
+    var wrap = el("<div></div>");
+    var td = findTD(tdId);
+    var back = el('<a class="detail-back">‹ Retour aux TD</a>');
+    back.addEventListener("click", function(){ go("subject-" + subject.id + "/td"); });
+    wrap.appendChild(back);
+    wrap.appendChild(el(
+      '<div class="detail-head td"><span class="eyebrow mono">' + esc(td.eyebrow) + "</span><h2>" + esc(td.title) + "</h2></div>"
+    ));
+    if (td.note) wrap.appendChild(el('<div class="td-note">' + esc(td.note) + "</div>"));
+    var qa = el('<div class="td-qa"></div>');
+    td.items.forEach(function(item, i){
+      var itemEl = el(
+        '<div class="td-item">' +
+          '<div class="q"><span class="qnum mono">' + (i + 1) + '</span><span class="qtext">' + esc(item.q) + "</span></div>" +
+          '<div class="atext"></div>' +
+          (item.flag ? '<span class="flag">⚠ ' + esc(item.flag) + "</span>" : "") +
+        "</div>"
+      );
+      var atext = itemEl.querySelector(".atext");
+      item.a.forEach(function(p){
+        var pEl = document.createElement("p");
+        pEl.innerHTML = p;
+        atext.appendChild(pEl);
+      });
+      qa.appendChild(itemEl);
+    });
+    wrap.appendChild(qa);
+    return wrap;
+  }
+
+  // -- session runner ------------------------------------------------
+  var EXAM_LENGTH = 20;
+  var EXAM_DURATION = 15 * 60;
+  var examTimerId = null;
+
+  function clearExamTimer(){
+    if (examTimerId){ clearInterval(examTimerId); examTimerId = null; }
+  }
+  function formatTime(s){
+    var m = Math.floor(s / 60), ss = s % 60;
+    return m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function startExamTimer(){
+    clearExamTimer();
+    examTimerId = setInterval(function(){
+      if (!session || !session.isExam){ clearExamTimer(); return; }
+      session.timeLeft--;
+      if (session.timeLeft <= 0){
+        session.timeLeft = 0;
+        clearExamTimer();
+        session.pos = session.order.length;
+        renderSession();
+        return;
+      }
+      var elTimer = document.getElementById("exam-timer");
+      if (elTimer){
+        elTimer.textContent = formatTime(session.timeLeft);
+        elTimer.classList.toggle("urgent", session.timeLeft <= 60);
+      }
+    }, 1000);
+  }
+
+  function startSession(subject, chapter, mode){
+    clearExamTimer();
+    session = {
+      subject: subject, chapter: chapter, mode: mode, isExam: false,
+      order: shuffle(chapter.cards.map(function(_,i){return i;})),
+      pos: 0, correct: 0, done: false
+    };
+    renderSession();
+  }
+
+  function startExam(subject){
+    var pool = [];
+    subject.chapters.forEach(function(ch){
+      ch.cards.forEach(function(c){ c.chapterTitle = ch.title; pool.push(c); });
+    });
+    pool = shuffle(pool);
+    session = {
+      subject: subject, chapter: null, mode: "qcm", isExam: true,
+      order: pool.slice(0, Math.min(EXAM_LENGTH, pool.length)),
+      pos: 0, correct: 0, done: false,
+      results: {}, timeLeft: EXAM_DURATION
+    };
+    startExamTimer();
+    renderSession();
+  }
+
+  function currentCard(){
+    var item = session.order[session.pos];
+    return session.isExam ? item : session.chapter.cards[item];
+  }
+
+  function quitSession(){ clearExamTimer(); render(); }
+
+  function renderSession(){
+    app.innerHTML = "";
+    app.appendChild(topbar({view:"subject", id: session.subject.id}));
+    if (session.pos >= session.order.length){
+      clearExamTimer();
+      app.appendChild(recapView());
+      return;
+    }
+    var card = currentCard();
+    var top = el(
+      '<div class="session-top">' +
+        '<span class="progress-pill mono">' + (session.pos+1) + " / " + session.order.length + "</span>" +
+        (session.isExam ? '<span id="exam-timer" class="progress-pill mono' + (session.timeLeft <= 60 ? " urgent" : "") + '">' + formatTime(session.timeLeft) + "</span>" : "") +
+        '<a class="quit" data-quit>Quitter la session</a>' +
+      "</div>"
+    );
+    top.querySelector("[data-quit]").addEventListener("click", quitSession);
+
+    var stageContent;
+    if (session.mode === "flashcards") stageContent = flashcardStage(card);
+    else if (session.mode === "qcm") stageContent = qcmStage(card);
+    else stageContent = writtenStage(card);
+
+    var box = el('<div class="session"></div>');
+    box.appendChild(top);
+    var stage = el('<div class="stage"></div>');
+    stage.appendChild(stageContent);
+    box.appendChild(stage);
+    app.appendChild(box);
+  }
+
+  function nextCard(){ session.pos++; renderSession(); }
+
+  function flashcardStage(card){
+    var wrap = el(
+      '<div class="flash">' +
+        '<div class="flash-inner">' +
+          '<div class="flash-face front"><span class="tag">Question</span>' + esc(card.q) + "</div>" +
+          '<div class="flash-face back"><span class="tag">Réponse</span>' + esc(card.a) + "</div>" +
+        "</div>" +
+      "</div>"
+    );
+    var outer = el('<div style="display:flex;flex-direction:column;align-items:center;gap:18px;width:100%"></div>');
+    outer.appendChild(wrap);
+    var actions = el(
+      '<div class="flash-actions" hidden>' +
+        '<button data-know="0">À revoir</button>' +
+        '<button class="primary" data-know="1">Je savais</button>' +
+      "</div>"
+    );
+    wrap.addEventListener("click", function(){
+      wrap.classList.toggle("flipped");
+      if (wrap.classList.contains("flipped")) actions.hidden = false;
+    });
+    actions.querySelectorAll("[data-know]").forEach(function(btn){
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        markCard(card.id, btn.getAttribute("data-know") === "1");
+        nextCard();
+      });
+    });
+    outer.appendChild(actions);
+    return outer;
+  }
+
+  function qcmStage(card){
+    var options = shuffle([card.a].concat(card.d));
+    var wrap = el(
+      '<div class="qcm">' +
+        '<div class="q">' + esc(card.q) + "</div>" +
+        '<div class="opts"></div>' +
+      "</div>"
+    );
+    var opts = wrap.querySelector(".opts");
+    var answered = false;
+    options.forEach(function(opt){
+      var b = el('<button class="opt">' + esc(opt) + "</button>");
+      b.addEventListener("click", function(){
+        if (answered) return;
+        answered = true;
+        var isCorrect = opt === card.a;
+        b.classList.add(isCorrect ? "correct" : "wrong");
+        if (!isCorrect){
+          opts.querySelectorAll(".opt").forEach(function(o){
+            if (o.textContent === card.a) o.classList.add("correct");
+          });
+        }
+        opts.querySelectorAll(".opt").forEach(function(o){ o.disabled = true; });
+        markCard(card.id, isCorrect);
+        if (session.isExam) session.results[card.id] = isCorrect;
+        if (card.w){
+          wrap.appendChild(el('<div class="explain"><div class="label">Pourquoi</div>' + esc(card.w) + "</div>"));
+        }
+        var nextBtn = el('<div class="session-nav" style="margin-top:14px"><button class="primary">Suivant</button></div>');
+        nextBtn.querySelector("button").addEventListener("click", nextCard);
+        wrap.appendChild(nextBtn);
+      });
+      opts.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function writtenStage(card){
+    var wrap = el(
+      '<div class="written">' +
+        '<div class="q">' + esc(card.q) + "</div>" +
+        '<textarea placeholder="Écris ta réponse ici…" autofocus></textarea>' +
+        '<div class="session-nav"><button class="primary" data-check>Vérifier</button></div>' +
+      "</div>"
+    );
+    wrap.querySelector("[data-check]").addEventListener("click", function(){
+      var answer = wrap.querySelector("textarea").value.trim();
+      var compare = el(
+        '<div class="compare">' +
+          '<div class="block you"><div class="label">Ta réponse</div>' + (answer ? esc(answer) : "<em>(vide)</em>") + "</div>" +
+          '<div class="block ref"><div class="label">Réponse attendue</div>' + esc(card.a) + "</div>" +
+          (card.w ? '<div class="explain"><div class="label">Pourquoi</div>' + esc(card.w) + "</div>" : "") +
+          '<div class="grade-row">' +
+            "<span style=\"align-self:center;color:var(--fg-muted);font-size:13px\">C'était juste ?</span>" +
+            '<button data-grade="0">Non</button>' +
+            '<button class="primary" data-grade="1">Oui</button>' +
+          "</div>" +
+        "</div>"
+      );
+      compare.querySelectorAll("[data-grade]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          markCard(card.id, btn.getAttribute("data-grade") === "1");
+          nextCard();
+        });
+      });
+      wrap.querySelector("textarea").setAttribute("disabled","");
+      wrap.querySelector("[data-check]").closest(".session-nav").remove();
+      wrap.appendChild(compare);
+    });
+    return wrap;
+  }
+
+  function recapView(){
+    if (session.isExam) return examRecapView();
+    var p = loadProgress();
+    var scored = session.chapter.cards.filter(function(c){ return session.order.map(function(i){return session.chapter.cards[i].id;}).indexOf(c.id) !== -1; });
+    var known = scored.filter(function(c){ return p[c.id]; }).length;
+    var wrap = el(
+      '<div class="recap">' +
+        '<h3>Session terminée</h3>' +
+        '<div class="score mono">' + known + " / " + scored.length + "</div>" +
+        '<div style="color:var(--fg-muted)">' + esc(session.chapter.title) + "</div>" +
+        '<div class="session-nav" style="margin-top:8px">' +
+          '<button data-again>Refaire</button>' +
+          '<button class="primary" data-back>Retour à la matière</button>' +
+        "</div>" +
+      "</div>"
+    );
+    wrap.querySelector("[data-again]").addEventListener("click", function(){
+      startSession(session.subject, session.chapter, session.mode);
+    });
+    wrap.querySelector("[data-back]").addEventListener("click", quitSession);
+    return wrap;
+  }
+
+  function examRecapView(){
+    var results = session.results;
+    var total = session.order.length;
+    var correctCount = 0;
+    var byChapter = {};
+    session.order.forEach(function(c){
+      if (!byChapter[c.chapterTitle]) byChapter[c.chapterTitle] = {correct:0, total:0};
+      byChapter[c.chapterTitle].total++;
+      if (results[c.id]){ byChapter[c.chapterTitle].correct++; correctCount++; }
+    });
+    var pct = total ? Math.round(correctCount / total * 100) : 0;
+    var wrap = el(
+      '<div class="recap">' +
+        '<h3>Examen blanc terminé</h3>' +
+        '<div class="score mono">' + correctCount + " / " + total + "</div>" +
+        '<div style="color:var(--fg-muted)">' + pct + "% de bonnes réponses" + (session.timeLeft <= 0 ? " · temps écoulé" : "") + "</div>" +
+      "</div>"
+    );
+    var table = el('<div class="exam-breakdown"></div>');
+    Object.keys(byChapter).forEach(function(title){
+      var r = byChapter[title];
+      table.appendChild(el('<div class="exam-row"><span>' + esc(title) + '</span><span class="mono">' + r.correct + "/" + r.total + "</span></div>"));
+    });
+    wrap.appendChild(table);
+    var nav = el(
+      '<div class="session-nav" style="margin-top:14px">' +
+        '<button data-again>Refaire un examen blanc</button>' +
+        '<button class="primary" data-back>Retour à la matière</button>' +
+      "</div>"
+    );
+    nav.querySelector("[data-again]").addEventListener("click", function(){ startExam(session.subject); });
+    nav.querySelector("[data-back]").addEventListener("click", quitSession);
+    wrap.appendChild(nav);
+    return wrap;
+  }
+
+  render();
+
+  // -- PWA : enregistre le service worker (copie locale + hors-ligne) ---
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("service-worker.js").catch(function (err) {
+        console.warn("Service worker non enregistré :", err);
+      });
+    });
+  }
+})();
+</script>
