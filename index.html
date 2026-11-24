@@ -141,7 +141,7 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
 .flash{width:100%;max-width:520px;aspect-ratio:3/2;perspective:1200px;cursor:pointer}
 .flash-inner{position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
 .flash.flipped .flash-inner{transform:rotateY(180deg)}
-.flash-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;border-radius:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:19px}
+.flash-face{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;backface-visibility:hidden;border-radius:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:19px;line-height:1.45}
 .flash-face.back{transform:rotateY(180deg);background:var(--surface-2)}
 .flash-face::after{content:"";position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 24px 24px 0;border-color:transparent var(--surface-2) transparent transparent}
 .flash-face.back::after{border-color:transparent var(--surface) transparent transparent}
@@ -177,8 +177,22 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
 .exam-breakdown{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .exam-row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px}
 .progress-pill.urgent{color:var(--bad);font-weight:600}
+.exam-stage-tag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent-2);font-weight:600;display:block;margin-bottom:8px;text-align:center}
+.exam-doc{width:100%;max-width:640px;display:flex;flex-direction:column;gap:14px}
+.exam-doc-scroll{max-height:56vh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:14px;padding-right:4px}
+.exam-doc h4{font-size:15px;color:var(--accent-2);margin:0 0 6px}
+.exam-doc p{margin:0 0 8px;font-size:14px;line-height:1.55}
+.exam-doc p:last-child{margin-bottom:0}
+.examdoc-table{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 8px}
+.examdoc-table th,.examdoc-table td{border:1px solid var(--line);padding:5px 7px;text-align:left}
+.examdoc-table th{background:var(--surface-2);font-weight:600}
+.exam-doc-review{align-self:center;font-size:13px;color:var(--fg-muted);cursor:pointer;text-decoration:underline;margin-top:10px}
+.exam-doc-review:hover{color:var(--accent)}
 @media (max-width:480px){
-  .flash-face{font-size:16px;padding:20px}
+  .flash{aspect-ratio:auto;height:min(62vh,440px)}
+  .flash-face{font-size:16px;line-height:1.5;padding:18px 16px 22px;text-align:left;align-items:flex-start;justify-content:flex-start}
+  .flash-face .tag{position:static;display:block;margin-bottom:10px}
+  .flash-face::after{display:none}
   .brand h1{font-size:19px}
 }
 </style>
@@ -343,16 +357,6 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
           ]
         },
         {
-          id: "pratique",
-          title: "Infos pratiques : évaluation et équipe",
-          cards: [
-            {q:"Quelle est la pondération entre l'évaluation commune et l'évaluation CAO dans le bloc Écoconception ?", a:"L'évaluation commune (analyse fonctionnelle, conception, procédés, matériaux, droit de l'environnement, écoconception, ACV, fin de vie, aide à la décision) compte pour 70% ; l'évaluation CAO compte pour 30%.", d:["Les deux évaluations comptent chacune pour 50% de la note finale du bloc Écoconception.","C'est l'évaluation CAO qui compte pour 70%, l'évaluation commune ne pesant que pour 30%.","Seule l'évaluation commune est prise en compte, l'évaluation CAO n'étant qu'indicative sans impact sur la note."], w:"Avec 70% sur l'évaluation commune, c'est elle qui pèse le plus lourd dans la note finale du bloc : à prioriser en révision si le temps manque, contrairement à un équilibre 50/50, un rapport inversé ou une évaluation CAO purement indicative."},
-            {q:"Quel est le format de l'évaluation commune du bloc Écoconception ?", a:"Des questions de cours (QCM + questions ouvertes) et une étude de cas (QCM + questions ouvertes), plus un QCM e-learning sur 1 point (prise en main de Granta).", d:["Un oral individuel uniquement, sans aucune épreuve écrite.","Un rapport d'ACV complet, à réaliser et à rendre en groupe de plusieurs apprentis.","Un QCM seul, sans aucune question ouverte ni étude de cas associée."], w:"Le format mélange restitution de connaissances (questions de cours) et mise en situation (étude de cas), plus un petit QCM e-learning sur Granta : il faut savoir autant réciter qu'appliquer, pas seulement préparer un oral, un rapport de groupe ou un QCM isolé."},
-            {q:"Quelle compétence les apprentis doivent-ils valider en décembre dans le cadre de ce bloc ?", a:"Analyser les résultats d'une ACV simplifiée et identifier les étapes les plus impactantes (revue critique sur un périmètre restreint).", d:["Réaliser une ACV complète normée ISO 14044 sur un produit industriel, du périmètre à l'interprétation des résultats.","Déposer un brevet auprès de l'INPI pour une innovation technique développée pendant le bloc.","Concevoir et mettre en route une ligne de production automatisée pour un produit donné."], w:"C'est une compétence d'analyse critique, pas de calcul exhaustif : repérer les étapes les plus impactantes compte plus que maîtriser tous les détails méthodologiques d'une ACV normée complète, déposer un brevet ou concevoir une ligne de production."},
-            {q:"Qu'est-ce que \"Les Transitionneurs\" à l'ESB ?", a:"L'incubateur de projets responsables de l'école, qui accompagne les enseignements sur la soutenabilité (fresque du climat, atelier 2 tonnes, écoconception, chaîne de valeur responsable...) sur les 3 années de formation.", d:["Le nom commercial du logiciel d'analyse du cycle de vie utilisé pendant les cours d'écoconception.","Un club sportif de l'école, ouvert aux étudiants souhaitant pratiquer une activité physique en dehors des cours.","Le nom du bureau d'étude partenaire de l'école pour l'accueil des stagiaires et apprentis."], w:"Le nom à retenir si une question porte sur l'organisation de la soutenabilité à l'ESB plutôt que sur le contenu technique de l'écoconception ; ce n'est ni un logiciel, ni un club sportif, ni un bureau d'étude partenaire."}
-          ]
-        },
-        {
           id: "cas",
           title: "Étude de cas : outils d'évaluation (table rabattable)",
           cards: [
@@ -386,7 +390,15 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
             {q:"Une ACV compare \"produire 623g de matière recyclée avec MéGO\" à \"623g de composite équivalent\". Cette unité fonctionnelle, basée uniquement sur une masse égale, est-elle suffisante pour une comparaison équitable ?", a:"Non : il faudrait aussi préciser les performances et la durée de vie visées, car deux matériaux de même masse ne rendent pas forcément le même service.", d:["Oui, comparer deux matériaux à masse égale est toujours suffisant pour une ACV.", "Non, seule la fin de vie des deux matériaux devrait être prise en compte, les performances n'ont pas d'importance.", "Non, mais uniquement parce que les deux matériaux ne sont pas fabriqués sur le même site."], w:"L'unité fonctionnelle doit quantifier la FONCTION rendue, pas seulement une quantité de matière : si l'un des deux matériaux est moins performant ou moins durable à masse égale, il en faudrait davantage pour rendre le même service, ce qui change complètement le résultat de la comparaison."},
             {q:"Pour l'assise d'un mobilier urbain, quelle propriété matériau détermine la résistance du matériau aux rayures ?", a:"La dureté.", d:["La ténacité.","La limite élastique.","Le module d'Young."], w:"La dureté mesure précisément la résistance d'un matériau à la déformation de surface, donc aux rayures (c'est ce que mesurent les essais Vickers, Brinell ou Janka) : la ténacité concerne la résistance à la propagation de fissures, la limite élastique et le module d'Young décrivent le comportement en traction/flexion, pas la résistance de surface."},
             {q:"Pour le matériau de l'assise d'un mobilier urbain, laquelle de ces grandeurs N'influence PAS le temps pendant lequel l'assise paraîtra froide au toucher : conductivité thermique, chaleur spécifique, masse volumique, coefficient de dilatation thermique ?", a:"Le coefficient de dilatation thermique.", d:["La conductivité thermique.","La chaleur spécifique.","La masse volumique."], w:"La sensation de froid au toucher dépend de l'effusivité thermique du matériau, qui se calcule à partir de la conductivité thermique, de la masse volumique et de la chaleur spécifique (formule Q = racine de ρ×λ×Cp) : le coefficient de dilatation thermique décrit une variation DIMENSIONNELLE avec la température, sans lien avec la vitesse à laquelle la chaleur du doigt est absorbée."},
-            {q:"Pour un pied en chêne travaillant en compression, l'indice de performance est M = σy/ρ, avec σy = 56,3 ± 5,7 MPa et ρ = 765 ± 75 kg/m³. En utilisant la règle de propagation d'incertitude pour un quotient (ΔM/M = Δσy/σy + Δρ/ρ), quelle est l'incertitude ΔM ?", a:"Environ 0,0147 (M ≈ 0,0736, et Δσy/σy + Δρ/ρ ≈ 0,101 + 0,098 ≈ 0,199, donc ΔM ≈ 0,0736 × 0,199).", d:["Environ 0,0109, en ne prenant en compte que l'incertitude sur ρ.","Environ 0,1993, en confondant ΔM avec le rapport Δσy/σy + Δρ/ρ lui-même.","Environ 0,1487, en additionnant directement Δσy et Δρ sans passer par les rapports relatifs."], w:"Pour un quotient M = σy/ρ, l'erreur classique est d'oublier que ΔM s'obtient en multipliant M par la SOMME des incertitudes RELATIVES (et non en travaillant directement sur les valeurs absolues, ni en ne gardant qu'un seul terme) : ici 0,0736 × (0,101+0,098) donne bien environ 0,0147."}
+            {q:"Pour un pied en chêne travaillant en compression, l'indice de performance est M = σy/ρ, avec σy = 56,3 ± 5,7 MPa et ρ = 765 ± 75 kg/m³. En utilisant la règle de propagation d'incertitude pour un quotient (ΔM/M = Δσy/σy + Δρ/ρ), quelle est l'incertitude ΔM ?", a:"Environ 0,0147 (M ≈ 0,0736, et Δσy/σy + Δρ/ρ ≈ 0,101 + 0,098 ≈ 0,199, donc ΔM ≈ 0,0736 × 0,199).", d:["Environ 0,0109, en ne prenant en compte que l'incertitude sur ρ.","Environ 0,1993, en confondant ΔM avec le rapport Δσy/σy + Δρ/ρ lui-même.","Environ 0,1487, en additionnant directement Δσy et Δρ sans passer par les rapports relatifs."], w:"Pour un quotient M = σy/ρ, l'erreur classique est d'oublier que ΔM s'obtient en multipliant M par la SOMME des incertitudes RELATIVES (et non en travaillant directement sur les valeurs absolues, ni en ne gardant qu'un seul terme) : ici 0,0736 × (0,101+0,098) donne bien environ 0,0147."},
+            {q:"Vous devez pondérer l'importance relative des fonctions du cahier des charges pour une nouvelle variante du produit « Assis-Debout ». Quel(s) outil(s) permettent d'établir cette pondération ?", a:"Le tri-croisé (comparaison deux à deux pour établir le poids de chaque fonction) et la matrice de décision pondérée (qui intègre ensuite directement ces coefficients d'importance).", d:["Le vote pondéré et le diagramme de Pareto, qui servent plutôt à prioriser des causes de défaillances déjà identifiées.","L'AMDEC seul, qui évalue la criticité de défaillances potentielles, pas l'importance de fonctions d'un cahier des charges.","L'arbre de décision seul, qui sert à visualiser des scénarios successifs, pas à comparer l'importance de plusieurs fonctions entre elles."], w:"Le tri-croisé est l'outil de référence pour établir un poids relatif entre fonctions à partir de rien ; une matrice de décision pondérée peut ensuite intégrer directement ces coefficients au moment de noter les options. Vote pondéré, Pareto, AMDEC et arbre de décision répondent à d'autres besoins (prioriser des causes, noter un risque, visualiser des scénarios), pas à établir un poids de fonctions."},
+            {q:"Pour les mobiliers MéGO (mégots recyclés), comment optimiser le recyclage de ces produits le jour où ils deviendront eux-mêmes des déchets ?", a:"Remplacer les panneaux MéGO usagés par de nouveaux panneaux MéGO et recycler les anciens en boucle fermée, et faciliter l'identification et le démantèlement des différentes parties du mobilier.", d:["Remplacer les panneaux par d'autres panneaux MéGO et incinérer systématiquement les anciens pour une valorisation énergétique.","Mettre en place un système de consigne sur les panneaux, sans rien changer à la conception du mobilier lui-même.","Ne rien changer : un matériau déjà recyclé une fois n'a pas besoin d'être pensé pour un second recyclage."], w:"Une fois devenu panneau MéGO, ce matériau peut être recyclé en boucle fermée en redevenant un panneau MéGO (contrairement au mégot d'origine, recyclé en boucle ouverte en mobilier) : il faut donc concevoir le mobilier pour permettre cette seconde boucle, ce qui passe par une conception facilitant le démontage et l'identification des pièces, pas par l'incinération, une simple consigne ou l'absence de réflexion fin de vie."},
+            {q:"La structure métallique du produit « Assis-Debout » actuellement en vente est constituée de tubes en acier cintrés de 4mm. Quel processus permet d'obtenir ces tubes cintrés ?", a:"Extrusion (pour obtenir le profil tubulaire) puis cintrage à induction (chauffage local qui facilite la mise en forme de la courbe).", d:["Extrusion puis cintrage à froid, sans aucun apport de chaleur localisé.","Roulage de tôle puis cintrage à galet, procédé plutôt réservé aux très gros diamètres.","Soufflage puis pliage avec matrice, un procédé qui concerne plutôt des pièces creuses en matière plastique."], w:"Pour un tube métallique de faible diamètre destiné à être cintré avec une courbure précise, chauffer localement la zone de cintrage (induction) limite le risque de plissement ou d'ovalisation, contrairement à un cintrage à froid ; le roulage à galet et le soufflage/pliage avec matrice concernent d'autres familles de pièces (grosses tôles roulées, pièces creuses plastiques)."},
+            {q:"La plaque en laiton (réf. MOB100, en option) indiquant le nombre de mégots présents dans un mobilier MéGO porte un texte et un logo. Comment est-elle probablement produite ?", a:"Découpe de la plaque, puis gravure laser pour le texte et le logo.", d:["Usinage par enlèvement de copeaux de l'ensemble de la plaque, texte compris.","Emboutissage de la plaque à partir d'une tôle plane.","Forgeage de la plaque à chaud."], w:"Pour une petite plaque plane destinée à de la personnalisation (texte/logo variable selon le nombre de mégots), la découpe suivie d'une gravure laser est la solution la plus simple, rapide et adaptable en petite série ; l'usinage par enlèvement de copeaux, l'emboutissage ou le forgeage sont des procédés plus lourds, peu justifiés pour une pièce aussi simple."},
+            {q:"Pour la variante bois du mobilier « Assis-Debout », une ferrure en acier de 2mm (angle à 135°, perçages et fraisages Ø5mm) permet d'assembler les pièces massives. Quel processus permet de la réaliser ?", a:"Extrusion (ou découpe dans un profilé) → tronçonnage → perçages → coupe d'angle → soudage.", d:["Laminage → soudage → tronçonnage → perçages → coupe d'angle → soudage.","Pliage → soudage → tronçonnage → coupe d'angle → soudage → perçage.","Soufflage → tronçonnage → perçages → coupe d'angle → soudage."], w:"Pour une ferrure d'assemblage en acier façonnée à 135° avec perçages et fraisages, le processus part d'un profilé (extrusion ou découpe), puis suit tronçonnage, perçage, coupe d'angle, et enfin soudage pour assembler les deux parties formant l'angle ; laminage, pliage seul ou soufflage ne correspondent pas à ce type de pièce métallique épaisse et anguleuse."},
+            {q:"Pour cette même ferrure d'assemblage en acier (2mm, angle 135°, perçages et fraisages), quel type d'entreprise serait la plus indiquée pour la sous-traiter, d'après sa dénomination ?", a:"Un atelier de construction métallique.", d:["Une entreprise de décolletage, plutôt spécialisée dans l'usinage de pièces cylindriques de précision en grande série.","Une entreprise de serrurerie, plutôt orientée vers les ouvrages de fermeture (portes, grilles, serrures).","Une entreprise de tôlerie fine, plutôt réservée à des pièces de très faible épaisseur."], w:"Un « atelier de construction métallique » est la dénomination la plus généraliste et la plus cohérente pour une pièce structurelle en acier de 2mm nécessitant découpe, perçage et soudage ; décolletage (pièces cylindriques), serrurerie (ouvrages de fermeture) et tôlerie fine (très faible épaisseur) sont des spécialités plus éloignées de ce type de pièce."},
+            {q:"Pour la pièce « Montant » de la variante bois massif du produit « Assis-Debout » (épaulements et congés 2mm, mortaise, perçages non débouchants, coupe d'angle 22,5°), produite en bois massif acheté en plot pour 500 unités par an, quel processus est le plus cohérent ?", a:"Tronçonnage → délignage → corroyage/profilage → ligne de production (tenonnage double + mortaisage + perçage au défilé + coupe angulaire).", d:["Tronçonnage → délignage → corroyage/profilage → tenonnage → perçage → coupe angulaire → mortaisage, sur des machines séparées et indépendantes.","Tronçonnage → délignage → dégauchissage → rabotage → usinage sur centre à commande numérique, sans ligne de production dédiée.","Tronçonnage → délignage → mise à longueur et à l'angle → perçage → profilage → tenonnage, dans cet ordre précis."], w:"Pour 500 pièces identiques par an (volume moyen, série répétitive mais pas de masse), une ligne de production regroupant les opérations répétitives (tenonnage double, mortaisage, perçage au défilé, coupe angulaire) après la mise en bois (tronçonnage, délignage, corroyage/profilage) est le bon compromis entre flexibilité et productivité, plus cohérent qu'un enchaînement de machines isolées, un simple centre CN isolé, ou un ordre qui placerait la mise en forme avant le dimensionnement de base de la pièce."},
+            {q:"La pièce 1 du mobilier urbain « Assis-Debout » (variante bois) travaille en compression et en flexion. À dimensions de pièce égales, si l'on s'appuie brutalement sur l'assise, que peut-on dire du comportement du douglas comparé au chêne ?", a:"La pièce en douglas rebondira davantage (effet trampoline) : à module d'Young comparable, sa masse volumique nettement plus faible lui donne une meilleure capacité de restitution élastique rapportée au poids que le chêne, plus dense et plus raide à l'impact.", d:["La pièce en chêne rebondira davantage, car son module d'Young est plus élevé que celui du douglas.","Les deux essences ont un comportement élastique rigoureusement identique sous un appui brutal, à dimensions égales.","Le douglas se déforme de façon permanente sous un appui brutal, contrairement au chêne qui revient toujours à sa forme initiale."], w:"L'indicateur pertinent pour un rebond élastique (\"effet trampoline\") n'est pas le module d'Young seul mais la résilience rapportée à la masse volumique : le douglas, nettement moins dense que le chêne pour une rigidité du même ordre, restitue proportionnellement plus d'énergie élastique. Un appui brutal ponctuel reste par ailleurs dans le domaine élastique pour les deux essences, donc sans déformation permanente ni comportement rigoureusement identique."}
           ]
         },
         {
@@ -534,14 +546,6 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
           "<b>Système 32</b> : entraxe standardisé de perçages pour les quincailleries de meuble.",
           "<b>Postformage</b> (stratifié plié à chaud) ≠ <b>softformage</b> (film/stratifié souple, profils plus complexes).",
           "<b>Caisson</b> : structure rectangulaire de base d'un meuble de rangement."
-        ]}
-      ],
-      pratique: [
-        {h:"L'essentiel à retenir", items:[
-          "Évaluation <b>commune 70%</b> / évaluation <b>CAO 30%</b> du bloc Écoconception.",
-          "Format de l'évaluation commune : questions de cours (QCM + ouvertes) + étude de cas (QCM + ouvertes) + QCM e-learning Granta (1 pt).",
-          "Compétence à valider en décembre : analyser les résultats d'une ACV simplifiée, identifier les étapes les plus impactantes.",
-          "<b>Les Transitionneurs</b> : l'incubateur de projets responsables de l'ESB (fresque du climat, atelier 2 tonnes...)."
         ]}
       ],
       cas: [
@@ -737,6 +741,55 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
         ]}
       ]
     }
+  ];
+
+  // -- support de cas (examen type ESB, partie "étude de cas") ----------
+  var EXAM_CASE_TITLE = "Cas d'étude — MéGO, mégots recyclés";
+  var EXAM_CASE_DOC = [
+    {h:"1. Présentation du contexte", p:[
+      "MéGO est une entreprise spécialisée dans la sensibilisation aux impacts des mégots de cigarettes, leur collecte et leur recyclage. L'objectif est de faire des villes et des milieux naturels des lieux zéro mégot.",
+      "La ressource en mégots est récupérée chez les clients de l'entreprise (750 points de collecte en France, Belgique, Luxembourg : 70% d'entreprises privées, 30% de collectivités et mairies), puis via huit sites de collecte et recyclée sur un site de traitement et valorisation.",
+      "MéGO possède un brevet sur son procédé de recyclage, avec un arrêté préfectoral l'autorisant seule à traiter les mégots par recyclage. La matière produite est elle-même recyclable.",
+      "La gamme de produits inclut des bancs, poubelles et cendriers fabriqués à partir de mégots recyclés, ainsi qu'un mobilier urbain « Assis-Debout ». Une option permet d'apposer sur chaque mobilier une plaque en laiton indiquant le nombre de mégots utilisés (réf. MOB100).",
+      "MéGO étudie une variante alternative au mobilier « Assis-Debout », intégrant davantage de matériaux biosourcés : un châssis en bois massif assemblé par des ferrures métalliques, au lieu du tube acier actuel, l'assise restant en matière MéGO."
+    ]},
+    {h:"2. Procédé de recyclage des mégots", p:[
+      "Un filtre de cigarette est fabriqué en acétate de cellulose (un plastique), traité au dioxyde de titane et compacté avec de la triacétine (un plastifiant).",
+      "Le procédé se déroule en 5 étapes : <b>1. Tri</b> (3 à 5% des stocks collectés sont d'autres déchets, écartés) — <b>2. Séparation</b> entre filtre et tabac (tabac/papiers/cendres compostés) — <b>3. Dépollution</b> des filtres en circuit fermé par un solvant (eau de pluie), récupération de la nicotine, des goudrons et des hydrocarbures — <b>4. Séchage</b> rapide pour éliminer l'humidité — <b>5. Thermocompression</b> : l'acétate de cellulose (thermoplastique) est mélangé à des résidus de broyage de lunettes (même matière) et pressé pour produire des plaques."
+    ], table:{
+      caption:"Tableau 1 — Bilan énergie-matière du procédé de recyclage MéGO (pour 1 kg de mégots entrant)",
+      head:["Étape","Flux entrant","Énergie consommée (kWh)"],
+      rows:[
+        ["1. Tri et broyage","1 kg","0,040"],
+        ["2. Dépollution","0,675 kg","0,165"],
+        ["3a. Séchage","0,759 kg","0,246"],
+        ["3b. Broyage","0,623 kg","0,060"],
+        ["4. Thermoformage","0,623 kg","2,110"]
+      ]
+    }},
+    {h:"3. Informations sur l'ACV", p:[
+      "L'analyse environnementale par approche ACV du procédé MéGO a été comparée à celle d'un composite « équivalent », sur l'unité fonctionnelle suivante : « produire 623 g de matière recyclée avec le procédé MéGO, versus 623 g de composite équivalent ».",
+      "Frontière du système MéGO : collecte → transport → recyclage MéGO (tri/broyage, dépollution, séchage) → transport → recyclage MéGO (broyage, thermoformage) → matière plastGO. Les phases amont (extraction des matières premières de la cigarette, utilisation/fumage) et la fin de vie du mobilier restent hors de cette frontière.",
+      "Frontière du composite comparé : extraction des matières premières pétrosourcées → transport → 1ère transformation (industrie pétrochimique et du bois) → 2ème transformation (mise en forme par plasturgie) → matériau composite.",
+      "Résultat comparé, catégorie d'impact par catégorie d'impact (méthode ReCiPe 2016 Midpoint) : sur la majorité des catégories d'impact, dont la pollution de l'air (changement climatique, particules), le matériau composite contribue davantage que la matière MéGO."
+    ]},
+    {h:"4. Informations sur les matériaux (variante bois massif)", p:[
+      "Pour le châssis bois de la variante « Assis-Debout », deux essences sont envisagées : le chêne (Quercus Alba) et le douglas (Pseudotsuga Menziesii). La partie la plus sollicitée mécaniquement (pièce 1) est la partie verticale, en compression et en flexion.",
+      "Le douglas est une essence nettement moins dense que le chêne, pour un module d'Young du même ordre de grandeur (voir Tableau 2)."
+    ], table:{
+      caption:"Tableau 2 — Propriétés mécaniques comparées (valeurs moyennes)",
+      head:["Propriété","Chêne (Quercus Alba)","Douglas fir"],
+      rows:[
+        ["Module d'Young E","12,1 GPa","13,3 GPa"],
+        ["Limite élastique (yield strength)","50,6 MPa","43,8 MPa"]
+      ]
+    }, table2:{
+      caption:"Tableau 3 — Caractéristiques technico-économiques du chêne, avec incertitudes",
+      head:["Matériau","σy (MPa)","Δσy (MPa)","ρ (kg/m³)","Δρ (kg/m³)","M = σy/ρ"],
+      rows:[
+        ["Chêne (Quercus Alba)","56,3","5,7","765","75","0,0736"]
+      ]
+    }}
   ];
 
   // -- ids + progress --------------------------------------------------
@@ -998,9 +1051,9 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
     wrap.appendChild(list);
     var examCard = el(
       '<div class="card exam-card">' +
-        "<h3>" + clockIcon() + "Examen blanc</h3>" +
-        "<p>" + EXAM_LENGTH + " questions QCM tirées au hasard dans toutes les matières, en " + Math.round(EXAM_DURATION/60) + " minutes chrono.</p>" +
-        '<div><button class="primary" data-start-exam>Lancer l\'examen blanc</button></div>' +
+        "<h3>" + clockIcon() + "Examen type ESB</h3>" +
+        "<p>Comme à l'examen réel : " + EXAM_CONNAISSANCE_LENGTH + " questions de connaissance, puis un cas d'étude (" + EXAM_CAS_LENGTH + " questions liées au cas MéGO), en " + Math.round(EXAM_DURATION/60) + " minutes chrono.</p>" +
+        '<div><button class="primary" data-start-exam>Lancer l\'examen</button></div>' +
       "</div>"
     );
     examCard.querySelector("[data-start-exam]").addEventListener("click", function(){ startExam(subject); });
@@ -1134,8 +1187,10 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
   }
 
   // -- session runner ------------------------------------------------
-  var EXAM_LENGTH = 20;
-  var EXAM_DURATION = 15 * 60;
+  var EXAM_CONNAISSANCE_LENGTH = 15;
+  var EXAM_CAS_LENGTH = 10;
+  var EXAM_CAS_CHAPTER_ID = "mego";
+  var EXAM_DURATION = 25 * 60;
   var examTimerId = null;
 
   function clearExamTimer(){
@@ -1176,14 +1231,20 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
   }
 
   function startExam(subject){
-    var pool = [];
+    var connPool = [], casPool = [];
     subject.chapters.forEach(function(ch){
-      ch.cards.forEach(function(c){ c.chapterTitle = ch.title; pool.push(c); });
+      if (ch.id === EXAM_CAS_CHAPTER_ID){
+        ch.cards.forEach(function(c){ c.chapterTitle = ch.title; casPool.push(c); });
+      } else if (ch.id !== "cas"){
+        ch.cards.forEach(function(c){ c.chapterTitle = ch.title; connPool.push(c); });
+      }
     });
-    pool = shuffle(pool);
+    connPool = shuffle(connPool).slice(0, Math.min(EXAM_CONNAISSANCE_LENGTH, connPool.length));
+    casPool = shuffle(casPool).slice(0, Math.min(EXAM_CAS_LENGTH, casPool.length));
     session = {
       subject: subject, chapter: null, mode: "qcm", isExam: true,
-      order: pool.slice(0, Math.min(EXAM_LENGTH, pool.length)),
+      order: connPool.concat(casPool),
+      caseAt: connPool.length, caseSeen: false, viewingCase: false,
       pos: 0, correct: 0, done: false,
       results: {}, timeLeft: EXAM_DURATION
     };
@@ -1206,7 +1267,6 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
       app.appendChild(recapView());
       return;
     }
-    var card = currentCard();
     var top = el(
       '<div class="session-top">' +
         '<span class="progress-pill mono">' + (session.pos+1) + " / " + session.order.length + "</span>" +
@@ -1216,17 +1276,67 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
     );
     top.querySelector("[data-quit]").addEventListener("click", quitSession);
 
-    var stageContent;
-    if (session.mode === "flashcards") stageContent = flashcardStage(card);
-    else if (session.mode === "qcm") stageContent = qcmStage(card);
-    else stageContent = writtenStage(card);
-
     var box = el('<div class="session"></div>');
     box.appendChild(top);
     var stage = el('<div class="stage"></div>');
-    stage.appendChild(stageContent);
+
+    if (session.isExam && session.viewingCase){
+      stage.appendChild(examCaseDocView(true));
+    } else if (session.isExam && session.pos === session.caseAt && !session.caseSeen && session.caseAt < session.order.length){
+      stage.appendChild(examCaseDocView(false));
+    } else {
+      var card = currentCard();
+      var stageContent;
+      if (session.mode === "flashcards") stageContent = flashcardStage(card);
+      else if (session.mode === "qcm") stageContent = qcmStage(card);
+      else stageContent = writtenStage(card);
+      stage.appendChild(stageContent);
+    }
     box.appendChild(stage);
     app.appendChild(box);
+  }
+
+  function examCaseDocTable(t){
+    var html = '<table class="examdoc-table"><caption style="caption-side:top;text-align:left;font-size:12px;color:var(--fg-muted);margin-bottom:4px">' + esc(t.caption) + "</caption><thead><tr>";
+    t.head.forEach(function(h){ html += "<th>" + esc(h) + "</th>"; });
+    html += "</tr></thead><tbody>";
+    t.rows.forEach(function(row){
+      html += "<tr>";
+      row.forEach(function(cell){ html += "<td>" + esc(cell) + "</td>"; });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    return html;
+  }
+
+  function examCaseDocView(isReview){
+    var wrap = el('<div class="exam-doc"></div>');
+    wrap.appendChild(el('<span class="exam-stage-tag">Cas d\'étude</span>'));
+    wrap.appendChild(el('<h3 style="text-align:center;margin-bottom:4px">' + esc(EXAM_CASE_TITLE) + "</h3>"));
+    var scroll = el('<div class="exam-doc-scroll"></div>');
+    EXAM_CASE_DOC.forEach(function(section){
+      var block = document.createElement("div");
+      var h = document.createElement("h4");
+      h.textContent = section.h;
+      block.appendChild(h);
+      section.p.forEach(function(p){
+        var pEl = document.createElement("p");
+        pEl.innerHTML = p;
+        block.appendChild(pEl);
+      });
+      if (section.table) block.insertAdjacentHTML("beforeend", examCaseDocTable(section.table));
+      if (section.table2) block.insertAdjacentHTML("beforeend", examCaseDocTable(section.table2));
+      scroll.appendChild(block);
+    });
+    wrap.appendChild(scroll);
+    var btn = el('<button class="primary" style="align-self:center">' + (isReview ? "Retour à la question" : "Commencer les questions sur ce cas") + "</button>");
+    btn.addEventListener("click", function(){
+      if (isReview) session.viewingCase = false;
+      else session.caseSeen = true;
+      renderSession();
+    });
+    wrap.appendChild(btn);
+    return wrap;
   }
 
   function nextCard(){ session.pos++; renderSession(); }
@@ -1265,12 +1375,19 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
 
   function qcmStage(card){
     var options = shuffle([card.a].concat(card.d));
+    var inCas = session.isExam && session.pos >= session.caseAt;
     var wrap = el(
       '<div class="qcm">' +
+        (session.isExam ? '<span class="exam-stage-tag">' + (inCas ? "Cas d'étude — MéGO" : "Question de connaissance") + "</span>" : "") +
         '<div class="q">' + esc(card.q) + "</div>" +
         '<div class="opts"></div>' +
       "</div>"
     );
+    if (inCas){
+      var reviewLink = el('<a class="exam-doc-review">Revoir le document du cas</a>');
+      reviewLink.addEventListener("click", function(){ session.viewingCase = true; renderSession(); });
+      wrap.appendChild(reviewLink);
+    }
     var opts = wrap.querySelector(".opts");
     var answered = false;
     options.forEach(function(opt){
@@ -1371,7 +1488,7 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
     var pct = total ? Math.round(correctCount / total * 100) : 0;
     var wrap = el(
       '<div class="recap">' +
-        '<h3>Examen blanc terminé</h3>' +
+        '<h3>Examen terminé</h3>' +
         '<div class="score mono">' + correctCount + " / " + total + "</div>" +
         '<div style="color:var(--fg-muted)">' + pct + "% de bonnes réponses" + (session.timeLeft <= 0 ? " · temps écoulé" : "") + "</div>" +
       "</div>"
@@ -1384,7 +1501,7 @@ button.danger-ghost{background:transparent;color:var(--bad);border-color:var(--b
     wrap.appendChild(table);
     var nav = el(
       '<div class="session-nav" style="margin-top:14px">' +
-        '<button data-again>Refaire un examen blanc</button>' +
+        '<button data-again>Refaire un examen</button>' +
         '<button class="primary" data-back>Retour à la matière</button>' +
       "</div>"
     );
