@@ -44,7 +44,7 @@ self.addEventListener("fetch", function (event) {
     // Page HTML : on va d'abord chercher la version en ligne (toujours la plus fraîche),
     // et on retombe sur la copie locale si le téléphone est hors-ligne.
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-store" })
         .then(function (res) {
           var copy = res.clone();
           caches.open(CACHE_NAME).then(function (cache) { cache.put(req, copy); });
